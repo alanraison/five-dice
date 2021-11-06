@@ -1,0 +1,51 @@
+{
+  "name": "@five-dice/main",
+  "version": "0.0.0",
+  "description": "Main application",
+  "author": "Alan <alanraison@users.noreply.github.com>",
+  "homepage": "https://github.com/alanraison/five-dice#readme",
+  "license": "GPL-3.0-or-later",
+  "module": "true",
+  "main": "lib/main.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alanraison/five-dice.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/alanraison/five-dice/issues"
+  },
+  "devDependencies": {
+    "@types/react": "^17.0.34",
+    "@types/react-dom": "^17.0.11",
+    "autoprefixer": "^10.4.0",
+    "bundle-loader": "^0.5.6",
+    "css-loader": "^6.5.1",
+    "eslint": "^8.1.0",
+    "postcss": "^8.3.11",
+    "postcss-loader": "^6.2.0",
+    "style-loader": "^3.3.1",
+    "tailwindcss": "^2.2.19",
+    "ts-loader": "^9.2.6",
+    "webpack": "^5.62.1",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.4.0"
+  },
+  "dependencies": {
+    "html-webpack-plugin": "^5.5.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "react-router": "^6.0.1",
+    "react-router-dom": "^6.0.1",
+    "tailwindcss": "^2.2.19"
+  }
+}
