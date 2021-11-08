@@ -12,5 +12,6 @@ module.exports = {
   parserOptions: {
     project: ['./tsconfig.json', 'packages/**/tsconfig.json'],
     extraFileExtensions: ['.cjs'],
+    ignorePatterns: ['.eslintrc.cjs'],
   },
 };
