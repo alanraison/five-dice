@@ -52,4 +52,25 @@ describe('createGameHandler', () => {
     } as any);
     expect(result).toBe('abcde');
   });
+  it('accepts base64 input', () => {
+    (gameService.createGame as jest.Mock).mockReturnValue('defg');
+    const body = Buffer.from(JSON.stringify({ name: 'alan' })).toString(
+      'base64'
+    );
+    return expect(
+      createGameHandler({
+        isBase64Encoded: true,
+        body,
+      } as any)
+    ).resolves.toBe('defg');
+  });
+  it('should return a 400 if invalid base64 input given', () =>
+    expect(
+      createGameHandler({
+        isBase64Encoded: true,
+        body: '%%% NOT BASE64 %%%%',
+      } as any)
+    ).resolves.toMatchObject({
+      statusCode: 400,
+    }));
 });

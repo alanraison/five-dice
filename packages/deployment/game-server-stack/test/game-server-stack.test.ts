@@ -9,7 +9,9 @@ import GameServerStack from '../lib/game-server-stack';
 test('Empty Stack', () => {
   const app = new cdk.App();
   // WHEN
-  const stack = new GameServerStack(app, 'MyTestStack');
+  const stack = new GameServerStack(app, 'MyTestStack', {
+    zoneid: 'Z0000000000',
+  });
   // THEN
   expectCDK(stack).to(
     matchTemplate(

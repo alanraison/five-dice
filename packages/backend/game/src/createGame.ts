@@ -28,6 +28,29 @@ function handleError(e: unknown, statusCode: number) {
   };
 }
 
+function getBody({
+  body,
+  isBase64Encoded,
+}: {
+  body?: string;
+  isBase64Encoded: boolean;
+}): CreateGameRequest {
+  if (!body) {
+    throw new Error('No request body provided');
+  }
+
+  const bodyString = isBase64Encoded
+    ? Buffer.from(body, 'base64').toString('utf-8')
+    : body;
+
+  const bodyObj = JSON.parse(bodyString);
+  const valid = validator.validate(bodyObj, createGameRequestSchema);
+  if (!valid.valid) {
+    throw new Error(valid.toString());
+  }
+  return bodyObj as CreateGameRequest;
+}
+
 export interface CreateGameHandlerProps {
   gameService: GameService;
 }
@@ -38,28 +61,15 @@ export default function createGameHandlerFactory({
   return async function createGameHandler(
     event: APIGatewayProxyEventV2
   ): Promise<APIGatewayProxyResultV2> {
-    if (!event.body) {
-      return Promise.resolve({
-        statusCode: 400,
-        body: 'Bad Request',
-      });
-    }
     let body: CreateGameRequest;
     try {
-      const parsed = JSON.parse(event.body || '');
-      const valid = validator.validate(parsed, createGameRequestSchema);
-      if (!valid.valid) {
-        return await Promise.resolve({
-          statusCode: 400,
-          body: valid.toString(),
-        });
-      }
-      body = parsed as CreateGameRequest;
+      body = getBody(event);
     } catch (e) {
       return Promise.resolve(handleError(e, 400));
     }
     try {
-      return await gameService.createGame(body.name);
+      const gameId = await gameService.createGame(body.name);
+      return JSON.stringify({ gameId });
     } catch (e) {
       return Promise.resolve(handleError(e, 500));
     }
