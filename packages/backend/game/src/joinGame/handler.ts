@@ -14,8 +14,8 @@ const joinGameRequestSchema: JTDSchemaType<JoinGameRequest> = {
   },
 };
 
+const bodyParser = bodyParserFactory(joinGameRequestSchema);
 export default function joinGameHandlerFactory(joinGameDAO: JoinGameDAO) {
-  const bodyParser = bodyParserFactory(joinGameRequestSchema);
   return async function joinGameHandler(event: APIGatewayProxyEventV2) {
     console.log(JSON.stringify(event));
     let request: JoinGameRequest;
