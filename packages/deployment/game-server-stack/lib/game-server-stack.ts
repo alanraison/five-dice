@@ -2,8 +2,16 @@ import * as cdk from '@aws-cdk/core';
 import { Table, AttributeType } from '@aws-cdk/aws-dynamodb';
 import { NodejsFunction } from '@aws-cdk/aws-lambda-nodejs';
 import { PolicyStatement } from '@aws-cdk/aws-iam';
-import { HttpApi, HttpMethod } from '@aws-cdk/aws-apigatewayv2';
-import { LambdaProxyIntegration } from '@aws-cdk/aws-apigatewayv2-integrations';
+import {
+  HttpApi,
+  HttpMethod,
+  WebSocketApi,
+  WebSocketStage,
+} from '@aws-cdk/aws-apigatewayv2';
+import {
+  LambdaProxyIntegration,
+  LambdaWebSocketIntegration,
+} from '@aws-cdk/aws-apigatewayv2-integrations';
 import {
   HostedZone,
   RecordSet,
@@ -29,8 +37,7 @@ export default class GameServerStack extends cdk.Stack {
     });
 
     const createGame = new NodejsFunction(this, 'CreateGame', {
-      entry: require.resolve('@five-dice/game'),
-      handler: 'createGameHandler',
+      entry: require.resolve('@five-dice/game/src/createGame'),
       environment: {
         TABLE: table.tableName,
       },
@@ -55,6 +62,27 @@ export default class GameServerStack extends cdk.Stack {
       integration: new LambdaProxyIntegration({
         handler: createGame,
       }),
+    });
+
+    const joinGame = new NodejsFunction(this, 'JoinGame', {
+      entry: require.resolve('@five-dice/game/src/joinGame'),
+      environment: {
+        TABLE: table.tableName,
+      },
+    });
+
+    const wsApi = new WebSocketApi(this, 'Websocket');
+
+    wsApi.addRoute('join', {
+      integration: new LambdaWebSocketIntegration({
+        handler: joinGame,
+      }),
+    });
+
+    new WebSocketStage(this, 'default', {
+      stageName: 'default',
+      webSocketApi: wsApi,
+      autoDeploy: true,
     });
 
     const zone = HostedZone.fromHostedZoneId(this, 'Zone', props.zoneid);

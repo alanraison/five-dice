@@ -2,18 +2,25 @@ import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { randomBytes } from 'crypto';
 import { DateTime } from 'luxon';
 
-export default class GameService {
-  constructor(private ddb: DynamoDBClient, private table: string) {}
+function nameGenerator() {
+  return randomBytes(4).toString('base64').substr(0, 6);
+}
 
-  async createGame(owner: string): Promise<string> {
+export type CreateGameDAO = (owner: string) => Promise<string>;
+
+export default function createGameDAOFactory(
+  ddb: DynamoDBClient,
+  table: string
+) {
+  return async function createGame(owner: string): Promise<string> {
     let lastError: unknown | undefined;
     for (
-      let name = GameService.nameGenerator(), i = 0;
+      let name = nameGenerator(), i = 0;
       i < 50;
-      i += 1, name = GameService.nameGenerator()
+      i += 1, name = nameGenerator()
     ) {
       const req = new PutItemCommand({
-        TableName: this.table,
+        TableName: table,
         Item: {
           PK: { S: name },
           Owner: { S: owner },
@@ -29,16 +36,12 @@ export default class GameService {
       });
       try {
         // eslint-disable-next-line no-await-in-loop
-        await this.ddb.send(req);
+        await ddb.send(req);
         return name;
       } catch (e) {
         lastError = e;
       }
     }
     throw new Error(`Unable to create game. Last error: ${lastError}`);
-  }
-
-  private static nameGenerator() {
-    return randomBytes(4).toString('base64').substr(0, 6);
-  }
+  };
 }
