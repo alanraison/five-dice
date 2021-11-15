@@ -22,10 +22,12 @@ export default function createGameDAOFactory(
       const req = new PutItemCommand({
         TableName: table,
         Item: {
-          PK: { S: name },
+          PK: { S: `GAME#${name}` },
+          // SK: { S: name },
           Owner: { S: owner },
           Status: { S: 'Pending' },
-          ttl: {
+          T: { S: 'Game' },
+          Ttl: {
             N: DateTime.now().plus({ days: 1 }).toSeconds().toString(10),
           },
         },
@@ -43,5 +45,5 @@ export default function createGameDAOFactory(
       }
     }
     throw new Error(`Unable to create game. Last error: ${lastError}`);
-  };
+  } as CreateGameDAO;
 }

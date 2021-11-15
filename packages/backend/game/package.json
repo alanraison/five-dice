@@ -11,7 +11,9 @@
   "author": "",
   "license": "GPL-3.0-or-later",
   "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.41.0",
     "@aws-sdk/client-dynamodb": "^3.40.0",
+    "@aws-sdk/client-eventbridge": "^3.41.0",
     "@types/aws-lambda": "^8.10.85",
     "ajv": "^8.7.1",
     "luxon": "^2.1.1"

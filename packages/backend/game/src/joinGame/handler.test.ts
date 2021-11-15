@@ -1,37 +1,61 @@
-import { APIGatewayProxyEventV2, APIGatewayProxyResultV2 } from 'aws-lambda';
-import joinGameHandlerFactory from './handler';
+import { APIGatewayProxyResultV2 } from 'aws-lambda';
 import joinGameDAOFactory from './dao';
-import bodyParserFactory from '../bodyParser';
+import joinGameHandlerFactory, {
+  APIGatewayWebsocketProxyEvent,
+} from './handler';
 
-jest.mock('../bodyParser');
 jest.mock('./dao');
 
 describe('joinGameHandler', () => {
   let joinGameHandler: (
-    e: APIGatewayProxyEventV2
+    e: APIGatewayWebsocketProxyEvent
   ) => Promise<APIGatewayProxyResultV2>;
   const dao = jest.fn();
-  const bodyParser = jest.fn();
   beforeEach(() => {
-    (bodyParserFactory as jest.Mock).mockReturnValue(bodyParser);
     (joinGameDAOFactory as jest.Mock).mockReturnValue(dao);
-    joinGameHandler = joinGameHandlerFactory(dao);
+    joinGameHandler = joinGameHandlerFactory(dao, jest.fn());
   });
-  it('should return 400 if is an error parsing the input', () => {
-    bodyParser.mockImplementation(() => {
-      throw new Error('Test Error');
-    });
-    return expect(joinGameHandler({} as any)).resolves.toMatchObject({
+  it("should return an error if the request doesn't contain the expected parameters", async () => {
+    await expect(
+      joinGameHandler({
+        queryStringParameters: {},
+        requestContext: {
+          connectionId: 'aaa',
+        },
+      })
+    ).resolves.toMatchObject({
       statusCode: 400,
-      body: 'Test Error',
     });
   });
   it('should register the player with the game', () => {
-    bodyParser.mockReturnValue({
-      gameId: 'aaa',
-      name: 'player1',
+    joinGameHandler({
+      queryStringParameters: {
+        gameId: '123',
+        name: 'alan',
+      },
+      requestContext: {
+        connectionId: 'aaa',
+      },
     });
-    joinGameHandler({} as any);
-    expect(dao).toBeCalled();
+    expect(dao).toBeCalledWith('123', 'alan', 'aaa');
+  });
+  it('should return an error if the DAO errors', async () => {
+    dao.mockImplementation(() => {
+      throw new Error('Some Error');
+    });
+    await expect(
+      joinGameHandler({
+        queryStringParameters: {
+          gameId: '123',
+          name: 'alan',
+        },
+        requestContext: {
+          connectionId: 'bbb',
+        },
+      })
+    ).resolves.toMatchObject({
+      statusCode: 500,
+      body: 'Some Error',
+    });
   });
 });
