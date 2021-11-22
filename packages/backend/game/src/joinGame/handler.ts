@@ -1,7 +1,9 @@
-import { JoinGameDAO } from './dao';
-import { EventQueuer } from './eventqueue';
+/* eslint-disable import/prefer-default-export */
+import joinGame, { UnsuccessfulJoinGameResponse } from './dao';
+import queuer from './event';
+import logger from '../logger';
 
-export interface APIGatewayWebsocketProxyEvent {
+interface APIGatewayWebsocketProxyEvent {
   body?: string;
   requestContext: {
     connectionId: string;
@@ -11,42 +13,49 @@ export interface APIGatewayWebsocketProxyEvent {
   };
 }
 
-export default function joinGameHandlerFactory(
-  joinGameDAO: JoinGameDAO,
-  queuer: EventQueuer
-) {
-  return async function joinGameHandler(event: APIGatewayWebsocketProxyEvent) {
-    const { gameId, name } = event.queryStringParameters;
-    if (!(gameId && name)) {
-      return Promise.resolve({
-        statusCode: 400,
-        body: 'Missing gameId or name parameter in request',
-      });
-    }
-    try {
-      const players = await joinGameDAO(
-        gameId,
-        name,
-        event.requestContext.connectionId
-      );
-      await queuer({
-        gameId,
-        newPlayer: name,
-        allPlayers: players,
-      });
-      console.log(JSON.stringify({ players }));
+export async function handler(event: APIGatewayWebsocketProxyEvent) {
+  const { gameId, name } = event.queryStringParameters;
+  if (!(gameId && name)) {
+    return Promise.resolve({
+      statusCode: 400,
+      body: 'Missing gameId or name parameter in request',
+    });
+  }
+  logger.info({
+    msg: 'join game',
+    name,
+    connectionId: event.requestContext.connectionId,
+  });
+  try {
+    const joinGameResponse = await joinGame(
+      gameId,
+      name,
+      event.requestContext.connectionId
+    );
+    if (joinGameResponse instanceof UnsuccessfulJoinGameResponse) {
       return {
-        statusCode: 204,
-        body: JSON.stringify({
-          players,
-        }),
+        statusCode: 400,
+        body: joinGameResponse.reason,
       };
-    } catch (e) {
-      console.error(JSON.stringify(e));
-      return Promise.resolve({
-        statusCode: 500,
-        body: e instanceof Error ? e.message : 'unknown error',
-      });
     }
-  };
+    const { players } = joinGameResponse;
+    await queuer({
+      gameId,
+      newPlayer: name,
+      allPlayers: players,
+    });
+    logger.debug({ players });
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        players,
+      }),
+    };
+  } catch (err) {
+    logger.error({ err });
+    return Promise.resolve({
+      statusCode: 500,
+      body: err instanceof Error ? err.message : 'unknown error',
+    });
+  }
 }

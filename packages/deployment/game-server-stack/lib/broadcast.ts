@@ -27,8 +27,8 @@ export default class Broadcast extends Construct {
 
     handler.addToRolePolicy(
       new PolicyStatement({
-        actions: ['dynamodb:GetItem'],
-        resources: [table.tableArn],
+        actions: ['dynamodb:Query'],
+        resources: [`${table.tableArn}/index/Connections`],
       })
     );
     handler.addToRolePolicy(

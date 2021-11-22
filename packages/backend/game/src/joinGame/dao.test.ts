@@ -1,29 +1,63 @@
+/* eslint-disable max-classes-per-file */
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import joinGameDAOFactory from './dao';
+import pino from 'pino';
+import joinGame, {
+  SuccessfulJoinGameResponse,
+  UnsuccessfulJoinGameResponse,
+} from './dao';
 
 jest.mock('@aws-sdk/client-dynamodb');
+jest.mock('../logger', () => pino({ enabled: false }));
+
+class MockConditionalCheckFailedException extends Error {
+  name: string = 'ConditionalCheckFailedException';
+
+  constructor() {
+    super('ConditionalCheckFailedException');
+  }
+}
 
 describe('JoinGameDAO', () => {
   const mockDynamoDBClient = new DynamoDBClient({});
-  const mockDao = joinGameDAOFactory(mockDynamoDBClient, '');
 
-  it('should save the player to the database', async () => {
-    (mockDynamoDBClient.send as jest.Mock).mockReturnValueOnce({
-      Attributes: {
-        Ttl: { N: '1234' },
-        Players: { SS: ['player1'] },
-      },
+  it('should return an unsuccessful response if the game does not exist', async () => {
+    (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
+      new MockConditionalCheckFailedException()
+    );
+    const response = await joinGame('game1', 'player1', 'conn1');
+    expect(response).toMatchObject<UnsuccessfulJoinGameResponse>({
+      reason: 'Game not joinable',
     });
-    await mockDao('game1', 'player1', 'conn1');
-    expect(mockDynamoDBClient.send).toHaveBeenCalled();
   });
-
+  it('should return an unsuccessful response if the game is full', async () => {
+    (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
+      new MockConditionalCheckFailedException()
+    );
+    const response = await joinGame('game1', 'player1', 'conn1');
+    expect(response).toMatchObject<UnsuccessfulJoinGameResponse>({
+      reason: 'Game not joinable',
+    });
+  });
   it('should return an error if the database write fails', async () => {
     (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
       new Error('Some Error')
     );
-    await expect(mockDao('game2', 'player2', 'conn2')).rejects.toThrowError(
+    await expect(joinGame('game2', 'player2', 'conn2')).rejects.toThrowError(
       'Some Error'
     );
+  });
+  it('should return the current player list if the player joins successfully', async () => {
+    (mockDynamoDBClient.send as jest.Mock).mockResolvedValueOnce({
+      Attributes: {
+        Players: {
+          SS: ['player1', 'player2', 'player3'],
+        },
+      },
+    });
+    await expect(
+      joinGame('game1', 'player3', 'conn3')
+    ).resolves.toEqual<SuccessfulJoinGameResponse>({
+      players: ['player1', 'player2', 'player3'],
+    });
   });
 });

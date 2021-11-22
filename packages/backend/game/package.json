@@ -16,7 +16,8 @@
     "@aws-sdk/client-eventbridge": "^3.41.0",
     "@types/aws-lambda": "^8.10.85",
     "ajv": "^8.7.1",
-    "luxon": "^2.1.1"
+    "luxon": "^2.1.1",
+    "pino": "^7.2.0"
   },
   "devDependencies": {
     "@types/jest": "^27.0.2",

@@ -1,11 +1,12 @@
 import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
-import eventQueueFactory from './eventqueue';
+import pino from 'pino';
+import queue from './event';
 
 jest.mock('@aws-sdk/client-eventbridge');
+jest.mock('../logger', () => pino({ enabled: false }));
 
 describe('Queuer', () => {
   const mockEventBridgeClient = new EventBridgeClient({});
-  const queue = eventQueueFactory(mockEventBridgeClient, 'event-bus');
   it('should queue an event on the queue', () => {
     queue({ gameId: 'aaa', newPlayer: 'new', allPlayers: ['new'] });
     expect(mockEventBridgeClient.send).toHaveBeenCalled();

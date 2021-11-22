@@ -1,20 +1,50 @@
 /* eslint-disable import/prefer-default-export */
-import { ApiGatewayManagementApiClient } from '@aws-sdk/client-apigatewaymanagementapi';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import handlerFactory from './handler';
-import dao from './dao';
+import {
+  ApiGatewayManagementApiClient,
+  PostToConnectionCommand,
+} from '@aws-sdk/client-apigatewaymanagementapi';
+import { EventBridgeEvent } from 'aws-lambda';
+import getConnectionsForGame from './dao';
+import logger from '../logger';
 
 if (!process.env.WSAPI_URL) {
   throw new Error('Initialisation Error: WSAPI_URL not defined');
 }
 
-if (!process.env.TABLE_NAME) {
-  throw new Error('Initialisation Error: TABLE_NAME not defined');
+interface PlayerJoinedEvent {
+  gameId: string;
+  newPlayer: string;
+  allPlayers: Array<string>;
 }
 
-export const handler = handlerFactory(
-  dao(new DynamoDBClient({}), process.env.TABLE_NAME),
-  new ApiGatewayManagementApiClient({
-    endpoint: process.env.WSAPI_URL,
-  })
-);
+const apiGwClient = new ApiGatewayManagementApiClient({
+  endpoint: process.env.WSAPI_URL,
+});
+
+export async function handler(
+  event: EventBridgeEvent<string, PlayerJoinedEvent>
+) {
+  try {
+    const connections = await getConnectionsForGame(event.detail.gameId);
+    const results = await Promise.all(
+      connections.map((c) =>
+        apiGwClient.send(
+          new PostToConnectionCommand({
+            ConnectionId: c,
+            Data: Buffer.from(
+              JSON.stringify({
+                type: event['detail-type'],
+                ...event.detail,
+                gameId: undefined,
+              })
+            ),
+          })
+        )
+      )
+    );
+    logger.debug(results);
+  } catch (e) {
+    logger.error(e);
+    throw e;
+  }
+}

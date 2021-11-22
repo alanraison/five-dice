@@ -1,23 +1,14 @@
-import { APIGatewayProxyResultV2 } from 'aws-lambda';
-import joinGameDAOFactory from './dao';
-import joinGameHandlerFactory, {
-  APIGatewayWebsocketProxyEvent,
-} from './handler';
+import pino from 'pino';
+import joinGame, { UnsuccessfulJoinGameResponse } from './dao';
+import { handler } from './handler';
 
 jest.mock('./dao');
+jest.mock('../logger', () => pino({ enabled: false }));
 
 describe('joinGameHandler', () => {
-  let joinGameHandler: (
-    e: APIGatewayWebsocketProxyEvent
-  ) => Promise<APIGatewayProxyResultV2>;
-  const dao = jest.fn();
-  beforeEach(() => {
-    (joinGameDAOFactory as jest.Mock).mockReturnValue(dao);
-    joinGameHandler = joinGameHandlerFactory(dao, jest.fn());
-  });
   it("should return an error if the request doesn't contain the expected parameters", async () => {
     await expect(
-      joinGameHandler({
+      handler({
         queryStringParameters: {},
         requestContext: {
           connectionId: 'aaa',
@@ -27,8 +18,11 @@ describe('joinGameHandler', () => {
       statusCode: 400,
     });
   });
-  it('should register the player with the game', () => {
-    joinGameHandler({
+  it('should register the player with the game', async () => {
+    (joinGame as jest.Mock).mockReturnValue({
+      players: ['alan', 'bob'],
+    });
+    const response = await handler({
       queryStringParameters: {
         gameId: '123',
         name: 'alan',
@@ -37,14 +31,17 @@ describe('joinGameHandler', () => {
         connectionId: 'aaa',
       },
     });
-    expect(dao).toBeCalledWith('123', 'alan', 'aaa');
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toMatchObject({
+      players: expect.arrayContaining(['alan']),
+    });
   });
   it('should return an error if the DAO errors', async () => {
-    dao.mockImplementation(() => {
+    (joinGame as jest.Mock).mockImplementation(() => {
       throw new Error('Some Error');
     });
     await expect(
-      joinGameHandler({
+      handler({
         queryStringParameters: {
           gameId: '123',
           name: 'alan',
@@ -56,6 +53,29 @@ describe('joinGameHandler', () => {
     ).resolves.toMatchObject({
       statusCode: 500,
       body: 'Some Error',
+    });
+  });
+  it('should return an error if the join was unsuccessful', async () => {
+    (joinGame as jest.Mock).mockImplementation(() => {
+      const response = new UnsuccessfulJoinGameResponse();
+      Object.assign(response, {
+        reason: 'Mock reason',
+      });
+      return response;
+    });
+    const result = await handler({
+      queryStringParameters: {
+        gameId: '123',
+        name: 'player1',
+      },
+      requestContext: {
+        connectionId: 'bbb',
+      },
+    });
+    expect(UnsuccessfulJoinGameResponse).toHaveBeenCalled();
+    expect(result).toMatchObject({
+      statusCode: 400,
+      body: 'Mock reason',
     });
   });
 });

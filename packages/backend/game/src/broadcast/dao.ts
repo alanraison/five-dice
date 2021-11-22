@@ -1,31 +1,31 @@
-import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
+import logger from '../logger';
 
-export type GetConnectionsForGameDAO = (
-  gameId: string
-) => Promise<Array<string>>;
+if (!process.env.TABLE_NAME) {
+  throw new Error('Initialisation Error: TABLE_NAME not defined');
+}
 
-export default function dao(ddb: DynamoDBClient, table: string) {
-  return async function getConnectionsForGame(gameId: string) {
-    const result = await ddb.send(
-      new GetItemCommand({
-        TableName: table,
-        Key: { PK: { S: `GAME#${gameId}` } },
-        AttributesToGet: ['Conns'],
-      })
-    );
-    //   new QueryCommand({
-    //     TableName: table,
-    //     KeyConditionExpression: '#conn begins_with(:pk)',
-    //     ExpressionAttributeNames: {
-    //       '#conn': 'PK',
-    //     },
-    //     ExpressionAttributeValues: {
-    //       ':pk': { S: `GAME#${gameId}#CONN` },
-    //     },
-    //     AttributesToGet: ['Conn'],
-    //   })
-    // );
-    console.log(JSON.stringify(result));
-    return result.Item?.Conns.SS || [];
-  } as GetConnectionsForGameDAO;
+const ddb = new DynamoDBClient({});
+const table = process.env.TABLE_NAME;
+
+export default async function getConnectionsForGame(gameId: string) {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: table,
+      IndexName: 'Connections',
+      KeyConditions: {
+        GSI1PK: {
+          ComparisonOperator: 'EQ',
+          AttributeValueList: [{ S: gameId }],
+        },
+        GSI1SK: {
+          ComparisonOperator: 'BEGINS_WITH',
+          AttributeValueList: [{ S: 'CONN#' }],
+        },
+      },
+      AttributesToGet: ['CID'],
+    })
+  );
+  logger.info(result);
+  return result.Items?.map((item) => item.CID.S) || [];
 }

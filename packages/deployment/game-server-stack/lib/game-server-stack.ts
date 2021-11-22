@@ -3,13 +3,20 @@ import {
   WebSocketApi,
   WebSocketStage,
 } from '@aws-cdk/aws-apigatewayv2';
-import { AttributeType, Table } from '@aws-cdk/aws-dynamodb';
+import { AttributeType, ProjectionType, Table } from '@aws-cdk/aws-dynamodb';
 import { EventBus } from '@aws-cdk/aws-events';
 import { HostedZone } from '@aws-cdk/aws-route53';
-import { CfnOutput, Construct, Stack, StackProps } from '@aws-cdk/core';
+import {
+  CfnOutput,
+  Construct,
+  RemovalPolicy,
+  Stack,
+  StackProps,
+} from '@aws-cdk/core';
 import Broadcast from './broadcast';
 import CreateGame from './createGame';
 import JoinGame from './joinGame';
+import LeaveGame from './leaveGame';
 
 interface GameServerStackProps extends StackProps {
   /** Route53 zone in which to add the DNS names */
@@ -24,20 +31,22 @@ export default class GameServerStack extends Stack {
         name: 'PK',
         type: AttributeType.STRING,
       },
-      // sortKey: {
-      //   name: 'SK',
-      //   type: AttributeType.STRING,
-      // },
       timeToLiveAttribute: 'Ttl',
+      removalPolicy: RemovalPolicy.DESTROY,
     });
-    // table.addGlobalSecondaryIndex({
-    //   indexName: 'Connections',
-    //   partitionKey: {
-    //     name: 'GSI1PK',
-    //     type: AttributeType.STRING,
-    //   },
-    //   nonKeyAttributes: ['PK'],
-    // });
+    table.addGlobalSecondaryIndex({
+      indexName: 'Connections',
+      partitionKey: {
+        name: 'GSI1PK',
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI1SK',
+        type: AttributeType.STRING,
+      },
+      projectionType: ProjectionType.INCLUDE,
+      nonKeyAttributes: ['CID', 'GID', 'Player'],
+    });
 
     const eventBus = new EventBus(this, 'Events');
 
@@ -46,6 +55,7 @@ export default class GameServerStack extends Stack {
 
     new CreateGame(this, 'CreateGame', { table, api });
     new JoinGame(this, 'JoinGame', { table, wsApi, eventBus });
+    new LeaveGame(this, 'LeaveGame', { table, wsApi, eventBus });
 
     const wsStage = new WebSocketStage(this, 'default', {
       stageName: 'default',
