@@ -14,4 +14,5 @@ module.exports = {
     extraFileExtensions: ['.cjs'],
   },
   ignorePatterns: ['.eslintrc.cjs'],
+  rules: [],
 };

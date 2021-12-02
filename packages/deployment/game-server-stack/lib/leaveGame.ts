@@ -27,7 +27,7 @@ export default class LeaveGame extends Construct {
 
     handler.addToRolePolicy(
       new PolicyStatement({
-        actions: ['dynamodb:DeleteItem'],
+        actions: ['dynamodb:DeleteItem', 'dynamodb:UpdateItem'],
         resources: [table.tableArn],
       })
     );

@@ -1,5 +1,12 @@
 /* eslint-disable import/prefer-default-export */
-import { DeleteItemCommand, DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import {
+  BatchExecuteStatementCommand,
+  BatchWriteItemCommand,
+  DeleteItemCommand,
+  DynamoDBClient,
+  TransactWriteItemsCommand,
+  UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import {
   EventBridgeClient,
   PutEventsCommand,
@@ -39,14 +46,56 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
       ReturnValues: 'ALL_OLD',
     })
   );
+  const gameId = result.Attributes?.GID?.S;
+  const player = result.Attributes?.Player?.S;
+
+  if (!(gameId || player)) {
+    throw new Error('Game ID or Player not found');
+  }
+
+  const results = await Promise.allSettled([
+    ddb.send(
+      new DeleteItemCommand({
+        TableName: table,
+        Key: { PK: { S: `PLAYER#${gameId}#${player}` } },
+      })
+    ),
+    ddb.send(
+      new UpdateItemCommand({
+        TableName: table,
+        Key: {
+          PK: { S: `GAME#${gameId}` },
+        },
+        UpdateExpression: 'Delete #players :player',
+        ExpressionAttributeNames: {
+          '#players': 'Players',
+        },
+        ExpressionAttributeValues: {
+          ':player': { SS: [player as string] },
+        },
+        ReturnValues: 'ALL_NEW',
+      })
+    ),
+  ]);
+  results.forEach((res) => {
+    if (res.status === 'rejected') {
+      throw new Error(res.reason);
+    }
+  });
+  const updateResult = results[1];
+  const players =
+    updateResult.status === 'fulfilled'
+      ? updateResult.value.Attributes?.Players?.SS
+      : undefined;
   await eventBridgeClient.send(
     new PutEventsCommand({
       Entries: [
         {
           DetailType: 'player-left',
           Detail: JSON.stringify({
-            name: result.Attributes?.Player?.S,
-            gameId: result.Attributes?.GID?.S,
+            player,
+            allPlayers: players,
+            gameId,
           }),
           Source: 'five-dice-wsapi',
           EventBusName: eventBus,

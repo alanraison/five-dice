@@ -17,23 +17,25 @@ interface PlayerJoinedEvent {
   allPlayers: Array<string>;
 }
 
+interface GameEvent {
+  gameId: string;
+}
+
 const apiGwClient = new ApiGatewayManagementApiClient({
   endpoint: process.env.WSAPI_URL,
 });
 
-export async function handler(
-  event: EventBridgeEvent<string, PlayerJoinedEvent>
-) {
+export async function handler(event: EventBridgeEvent<string, GameEvent>) {
   try {
     const connections = await getConnectionsForGame(event.detail.gameId);
-    const results = await Promise.all(
+    const results = await Promise.allSettled(
       connections.map((c) =>
         apiGwClient.send(
           new PostToConnectionCommand({
             ConnectionId: c,
             Data: Buffer.from(
               JSON.stringify({
-                type: event['detail-type'],
+                event: event['detail-type'],
                 ...event.detail,
                 gameId: undefined,
               })
