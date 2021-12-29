@@ -12,7 +12,7 @@ const ddb = new DynamoDBClient({});
 const table = process.env.TABLE;
 
 function nameGenerator() {
-  return randomBytes(4).toString('base64').substr(0, 6);
+  return randomBytes(4).toString('base64').substring(0, 6);
 }
 
 export async function createGame(): Promise<string> {

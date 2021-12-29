@@ -14,7 +14,7 @@ interface APIGatewayWebsocketProxyEvent {
 }
 
 export async function handler(event: APIGatewayWebsocketProxyEvent) {
-  const { gameId, name } = event.queryStringParameters;
+  const { gameId, name, character } = event.queryStringParameters;
   if (!(gameId && name)) {
     return Promise.resolve({
       statusCode: 400,
@@ -27,9 +27,10 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
     connectionId: event.requestContext.connectionId,
   });
   try {
+    const player = { name, character };
     const joinGameResponse = await joinGame(
       gameId,
-      name,
+      player,
       event.requestContext.connectionId
     );
     if (joinGameResponse instanceof UnsuccessfulJoinGameResponse) {
@@ -41,7 +42,7 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
     const { players } = joinGameResponse;
     await queuer({
       gameId,
-      newPlayer: name,
+      newPlayer: player,
       allPlayers: players,
     });
     logger.debug({ players });

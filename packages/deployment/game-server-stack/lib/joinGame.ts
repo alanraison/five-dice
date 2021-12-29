@@ -28,13 +28,18 @@ export default class JoinGame extends Construct {
     handler.addToRolePolicy(
       new PolicyStatement({
         actions: [
-          'dynamodb:BatchWriteItem',
           'dynamodb:ConditionCheckItem',
           'dynamodb:GetItem',
           'dynamodb:PutItem',
           'dynamodb:UpdateItem',
         ],
         resources: [table.tableArn],
+      })
+    );
+    handler.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:Query'],
+        resources: [`${table.tableArn}/index/Connections`],
       })
     );
     handler.addToRolePolicy(

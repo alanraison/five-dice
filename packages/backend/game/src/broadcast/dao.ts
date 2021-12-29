@@ -13,17 +13,17 @@ export default async function getConnectionsForGame(gameId: string) {
     new QueryCommand({
       TableName: table,
       IndexName: 'Connections',
-      KeyConditions: {
-        GSI1PK: {
-          ComparisonOperator: 'EQ',
-          AttributeValueList: [{ S: gameId }],
-        },
-        GSI1SK: {
-          ComparisonOperator: 'BEGINS_WITH',
-          AttributeValueList: [{ S: 'CONN#' }],
-        },
+      KeyConditionExpression: '#pk = :gameId AND begins_with(#sk, :conn)',
+      ExpressionAttributeNames: {
+        '#pk': 'GSI1PK',
+        '#sk': 'GSI1SK',
+        '#cid': 'CID',
       },
-      AttributesToGet: ['CID'],
+      ExpressionAttributeValues: {
+        ':gameId': { S: gameId },
+        ':conn': { S: 'CONN#' },
+      },
+      ProjectionExpression: '#cid',
     })
   );
   logger.info(result);

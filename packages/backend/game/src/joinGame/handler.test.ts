@@ -20,12 +20,19 @@ describe('joinGameHandler', () => {
   });
   it('should register the player with the game', async () => {
     (joinGame as jest.Mock).mockReturnValue({
-      players: ['alan', 'bob'],
+      players: [
+        {
+          name: 'alan',
+          character: 'char1',
+        },
+        { name: 'bob', character: 'char2' },
+      ],
     });
     const response = await handler({
       queryStringParameters: {
         gameId: '123',
         name: 'alan',
+        character: 'char1',
       },
       requestContext: {
         connectionId: 'aaa',
@@ -33,7 +40,7 @@ describe('joinGameHandler', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(JSON.parse(response.body)).toMatchObject({
-      players: expect.arrayContaining(['alan']),
+      players: expect.arrayContaining([{ name: 'alan', character: 'char1' }]),
     });
   });
   it('should return an error if the DAO errors', async () => {

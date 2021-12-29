@@ -8,7 +8,11 @@ jest.mock('../logger', () => pino({ enabled: false }));
 describe('Queuer', () => {
   const mockEventBridgeClient = new EventBridgeClient({});
   it('should queue an event on the queue', () => {
-    queue({ gameId: 'aaa', newPlayer: 'new', allPlayers: ['new'] });
+    queue({
+      gameId: 'aaa',
+      newPlayer: { name: 'new', character: '' },
+      allPlayers: [{ name: 'new', character: '' }],
+    });
     expect(mockEventBridgeClient.send).toHaveBeenCalled();
   });
   it('should throw an error if there is an error putting events', async () => {

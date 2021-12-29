@@ -2,10 +2,13 @@
 import {
   BatchWriteItemCommand,
   DynamoDBClient,
+  PutItemCommand,
+  QueryCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { DateTime } from 'luxon';
 import logger from '../logger';
+import { Player } from './types';
 
 if (!process.env.TABLE) {
   throw new Error('Initialisation Error: No Table given');
@@ -22,7 +25,7 @@ function isConditionalCheckFailedException(
 }
 
 export class SuccessfulJoinGameResponse {
-  constructor(readonly players: Array<string>) {}
+  constructor(readonly players: Array<Player>) {}
 }
 
 export class UnsuccessfulJoinGameResponse {
@@ -34,12 +37,12 @@ const ddb = new DynamoDBClient({});
 
 export default async function joinGameDAO(
   gameId: string,
-  player: string,
+  player: Player,
   connectionId: string
 ) {
   try {
     const ttl = DateTime.now().plus({ days: 1 }).toSeconds().toString(10);
-    const result = await ddb.send(
+    await ddb.send(
       new UpdateItemCommand({
         TableName: table,
         Key: {
@@ -52,8 +55,8 @@ export default async function joinGameDAO(
           '#players': 'Players',
         },
         ExpressionAttributeValues: {
-          ':players': { SS: [player] },
-          ':player': { S: player },
+          ':players': { SS: [player.name] },
+          ':player': { S: player.name },
           ':maxItems': { N: '6' },
           ':pending': { S: 'Pending' },
         },
@@ -71,43 +74,47 @@ export default async function joinGameDAO(
       })
     );
 
-    const players = result.Attributes?.Players.SS || [];
-
     await ddb.send(
-      new BatchWriteItemCommand({
-        RequestItems: {
-          [table]: [
-            {
-              PutRequest: {
-                Item: {
-                  PK: { S: `PLAYER#${gameId}#${player}` },
-                  T: { S: 'Player' },
-                  Name: { S: player },
-                  CID: { S: connectionId },
-                  Ttl: { N: ttl },
-                },
-              },
-            },
-            {
-              PutRequest: {
-                Item: {
-                  PK: { S: `CONN#${connectionId}` },
-                  T: { S: 'Connection' },
-                  GSI1PK: { S: gameId },
-                  GSI1SK: { S: `CONN#${connectionId}` },
-                  CID: { S: connectionId },
-                  GID: { S: gameId },
-                  Player: { S: player },
-                  Ttl: { N: ttl },
-                },
-              },
-            },
-          ],
+      new PutItemCommand({
+        TableName: table,
+        Item: {
+          PK: { S: `CONN#${connectionId}` },
+          T: { S: 'Connection' },
+          GSI1PK: { S: gameId },
+          GSI1SK: { S: `CONN#${connectionId}` },
+          CID: { S: connectionId },
+          GID: { S: gameId },
+          Player: { S: player.name },
+          Character: { S: player.character },
+          Ttl: { N: ttl },
         },
       })
     );
+    const allPlayers = await ddb.send(
+      new QueryCommand({
+        TableName: table,
+        IndexName: 'Connections',
+        KeyConditionExpression: '#pk = :gameId AND begins_with(#sk, :conn)',
+        ExpressionAttributeNames: {
+          '#pk': 'GSI1PK',
+          '#sk': 'GSI1SK',
+          '#player': 'Player',
+          '#character': 'Character',
+        },
+        ExpressionAttributeValues: {
+          ':gameId': { S: gameId },
+          ':conn': { S: 'CONN#' },
+        },
+        ProjectionExpression: '#player,#character',
+      })
+    );
 
-    return new SuccessfulJoinGameResponse(players);
+    return new SuccessfulJoinGameResponse(
+      allPlayers.Items?.map((item) => ({
+        name: item.Player?.S || 'unknown',
+        character: item.Character?.S || '',
+      })) || []
+    );
   } catch (e) {
     if (isConditionalCheckFailedException(e)) {
       logger.info({ msg: 'Game not joinable', gameId });

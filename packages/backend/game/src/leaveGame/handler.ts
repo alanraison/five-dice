@@ -1,10 +1,7 @@
 /* eslint-disable import/prefer-default-export */
 import {
-  BatchExecuteStatementCommand,
-  BatchWriteItemCommand,
   DeleteItemCommand,
   DynamoDBClient,
-  TransactWriteItemsCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import {
@@ -53,40 +50,23 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
     throw new Error('Game ID or Player not found');
   }
 
-  const results = await Promise.allSettled([
-    ddb.send(
-      new DeleteItemCommand({
-        TableName: table,
-        Key: { PK: { S: `PLAYER#${gameId}#${player}` } },
-      })
-    ),
-    ddb.send(
-      new UpdateItemCommand({
-        TableName: table,
-        Key: {
-          PK: { S: `GAME#${gameId}` },
-        },
-        UpdateExpression: 'Delete #players :player',
-        ExpressionAttributeNames: {
-          '#players': 'Players',
-        },
-        ExpressionAttributeValues: {
-          ':player': { SS: [player as string] },
-        },
-        ReturnValues: 'ALL_NEW',
-      })
-    ),
-  ]);
-  results.forEach((res) => {
-    if (res.status === 'rejected') {
-      throw new Error(res.reason);
-    }
-  });
-  const updateResult = results[1];
-  const players =
-    updateResult.status === 'fulfilled'
-      ? updateResult.value.Attributes?.Players?.SS
-      : undefined;
+  const updateResult = await ddb.send(
+    new UpdateItemCommand({
+      TableName: table,
+      Key: {
+        PK: { S: `GAME#${gameId}` },
+      },
+      UpdateExpression: 'Delete #players :player',
+      ExpressionAttributeNames: {
+        '#players': 'Players',
+      },
+      ExpressionAttributeValues: {
+        ':player': { SS: [player as string] },
+      },
+      ReturnValues: 'ALL_NEW',
+    })
+  );
+  const players = updateResult.Attributes?.Players?.SS;
   await eventBridgeClient.send(
     new PutEventsCommand({
       Entries: [

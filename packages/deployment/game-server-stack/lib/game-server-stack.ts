@@ -45,7 +45,7 @@ export default class GameServerStack extends Stack {
         type: AttributeType.STRING,
       },
       projectionType: ProjectionType.INCLUDE,
-      nonKeyAttributes: ['CID', 'GID', 'Player'],
+      nonKeyAttributes: ['CID', 'GID', 'Player', 'Character'],
     });
 
     const eventBus = new EventBus(this, 'Events');
