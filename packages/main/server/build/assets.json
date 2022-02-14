@@ -1,0 +1,60 @@
+{
+  "version": "5c17fbb9",
+  "entry": {
+    "module": "/_static/build/entry.client-UHVP6WNU.js",
+    "imports": [
+      "/_static/build/_shared/chunk-TZDFGVVW.js"
+    ]
+  },
+  "routes": {
+    "root": {
+      "id": "root",
+      "path": "",
+      "module": "/_static/build/root-ZSORFBZI.js",
+      "hasAction": false,
+      "hasLoader": false,
+      "hasCatchBoundary": true,
+      "hasErrorBoundary": true
+    },
+    "routes/$gameId": {
+      "id": "routes/$gameId",
+      "parentId": "root",
+      "path": ":gameId",
+      "module": "/_static/build/routes/$gameId-F2YHVGCO.js",
+      "imports": [
+        "/_static/build/_shared/chunk-FRNGQ2FI.js"
+      ],
+      "hasAction": false,
+      "hasLoader": true,
+      "hasCatchBoundary": false,
+      "hasErrorBoundary": false
+    },
+    "routes/$gameId.join": {
+      "id": "routes/$gameId.join",
+      "parentId": "root",
+      "path": ":gameId/join",
+      "module": "/_static/build/routes/$gameId.join-DZBNBNKO.js",
+      "imports": [
+        "/_static/build/_shared/chunk-FRNGQ2FI.js"
+      ],
+      "hasAction": true,
+      "hasLoader": true,
+      "hasCatchBoundary": false,
+      "hasErrorBoundary": false
+    },
+    "routes/index": {
+      "id": "routes/index",
+      "parentId": "root",
+      "index": true,
+      "module": "/_static/build/routes/index-X62JII3L.js",
+      "imports": [
+        "/_static/build/_shared/chunk-FRNGQ2FI.js"
+      ],
+      "hasAction": true,
+      "hasLoader": false,
+      "hasCatchBoundary": false,
+      "hasErrorBoundary": false
+    }
+  },
+  "url": "/_static/build/manifest-5C17FBB9.js"
+}

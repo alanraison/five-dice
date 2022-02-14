@@ -1,0 +1,35 @@
+{
+  "name": "@five-dice/cypress",
+  "version": "0.0.0",
+  "description": "> TODO: description",
+  "author": "Alan <alanraison@users.noreply.github.com>",
+  "homepage": "https://github.com/alanraison/five-dice#readme",
+  "license": "GPL-3.0-or-later",
+  "main": "lib/cypress.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.yarnpkg.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alanraison/five-dice.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/alanraison/five-dice/issues"
+  },
+  "devDependencies": {
+    "cypress": "^9.1.0"
+  },
+  "dependencies": {
+    "cypress": "9.1.1"
+  }
+}

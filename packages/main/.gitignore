@@ -1,0 +1,8 @@
+node_modules
+
+/.cache
+/build
+/public/_static/build
+app/tailwind.css
+flying-cartoon-monsters-set-kids-party-flying-monsters-with-wing-illustration-monster-character.zip
+cdk.out

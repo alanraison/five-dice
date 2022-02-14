@@ -1,0 +1,6 @@
+{
+  "app": "npx ts-node --prefer-ts-exts bin/remix-app.ts",
+  "context": {
+    "zoneid": "Z008757219GY2PO784L6P"
+  }
+}
