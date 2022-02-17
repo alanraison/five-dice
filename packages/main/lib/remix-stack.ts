@@ -10,6 +10,7 @@ import { RemixApi, RemixFunction, RemixStaticBucket } from 'remix-cdk';
 import Broadcast from './broadcastFunction';
 import JoinGame from './joinGameFunction';
 import LeaveGame from './leaveGameFunction';
+import { StartGame } from './startGameFunction';
 
 export class RemixStack extends Stack {
   constructor(scope: Construct, id: string) {
@@ -53,6 +54,10 @@ export class RemixStack extends Stack {
       table,
       wsApiStage: wsStage,
     });
+    const startGame = new StartGame(this, 'Start', {
+      table,
+      eventBus,
+    });
 
     wsApi.addRoute('$connect', {
       integration: new WebSocketLambdaIntegration('ConnectIntegration', join),
@@ -61,6 +66,12 @@ export class RemixStack extends Stack {
       integration: new WebSocketLambdaIntegration(
         'DisconnectIntegration',
         leave
+      ),
+    });
+    wsApi.addRoute('start', {
+      integration: new WebSocketLambdaIntegration(
+        'StartGameIntegration',
+        startGame
       ),
     });
     new Rule(this, 'Events', {

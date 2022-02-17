@@ -46,8 +46,11 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
   const gameId = result.Attributes?.GID?.S;
   const player = result.Attributes?.Player?.S;
 
-  if (!(gameId || player)) {
-    throw new Error('Game ID or Player not found');
+  if (!gameId) {
+    throw new Error('Game ID not found');
+  }
+  if (!player) {
+    throw new Error('Player not found');
   }
 
   const updateResult = await ddb.send(
@@ -77,6 +80,7 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
             allPlayers: players,
             gameId,
           }),
+          Resources: [gameId],
           Source: 'five-dice-wsapi',
           EventBusName: eventBus,
         },

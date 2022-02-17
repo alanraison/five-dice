@@ -26,6 +26,7 @@ export default async function queuer(message: PlayerJoinedEvent) {
           EventBusName: eventBusName,
           DetailType: 'player-joined',
           Detail: JSON.stringify(message),
+          Resources: [message.gameId],
           Source: 'five-dice-wsapi',
         },
       ],

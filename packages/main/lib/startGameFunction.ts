@@ -4,42 +4,28 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
-export interface JoinGameProps {
-  /** The dynamodb table for the game */
+export interface StartGameProps {
   table: ITable;
-  /** The event bus to publish events to */
   eventBus: IEventBus;
 }
 
-export default class JoinGame extends NodejsFunction {
+export class StartGame extends NodejsFunction {
   constructor(
     scope: Construct,
     id: string,
-    { table, eventBus }: JoinGameProps
+    { table, eventBus }: StartGameProps
   ) {
     super(scope, id, {
-      entry: require.resolve('../src/joinGame'),
+      entry: require.resolve('../src/startGame'),
       environment: {
         TABLE_NAME: table.tableName,
         EVENTBUS_NAME: eventBus.eventBusName,
       },
     });
-
     this.addToRolePolicy(
       new PolicyStatement({
-        actions: [
-          'dynamodb:ConditionCheckItem',
-          'dynamodb:GetItem',
-          'dynamodb:PutItem',
-          'dynamodb:UpdateItem',
-        ],
+        actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
         resources: [table.tableArn],
-      })
-    );
-    this.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['dynamodb:Query'],
-        resources: [`${table.tableArn}/index/Connections`],
       })
     );
     this.addToRolePolicy(
