@@ -1,15 +1,18 @@
 import classNames from 'classnames';
-import { useEffect } from 'react';
 import { Link, useParams } from 'remix';
+import { exit, startGame } from '~/reducers/commands';
+import { useAppDispatch, useAppSelector } from '~/reducers/hooks';
 import { Player } from '~/types';
 
 interface LobbyProps {
   player: Player;
-  players: Array<Player>;
 }
 
-export default function Lobby({ players, player }: LobbyProps) {
+export function Lobby({ player }: LobbyProps) {
   const { gameId } = useParams();
+  const players = useAppSelector((state) => state.players);
+  const dispatch = useAppDispatch();
+  console.log(players);
   const otherPlayers = players.filter((p) => p.name !== player.name);
   return (
     <>
@@ -54,6 +57,7 @@ export default function Lobby({ players, player }: LobbyProps) {
             'border-black',
             'rounded-xl'
           )}
+          onClick={() => dispatch(startGame(player.name))}
         >
           Start Game
         </button>
@@ -70,6 +74,7 @@ export default function Lobby({ players, player }: LobbyProps) {
             'border-black',
             'rounded-xl'
           )}
+          onClick={() => dispatch(exit())}
         >
           Leave Game
         </Link>

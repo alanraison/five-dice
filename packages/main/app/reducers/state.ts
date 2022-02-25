@@ -1,8 +1,2 @@
-import { Player } from '~/types';
-
-export interface PendingState {
-  state: 'pending';
-  allPlayers: Array<Player>;
-}
-
-export type State = PendingState;
+export const PendingState = 'pending';
+export const InProgressState = 'in-progress';

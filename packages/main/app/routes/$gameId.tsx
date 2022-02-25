@@ -1,9 +1,9 @@
 import { DataFunctionArgs } from '@remix-run/server-runtime';
+import { Provider } from 'react-redux';
 import { json, redirect, useLoaderData, useParams } from 'remix';
 import { gameExists } from '~/api/game';
-import Lobby from '~/components/Lobby';
-import { useWebSocket } from '~/hooks/websocket';
-import { ReducerProvider } from '~/reducers/context';
+import GameControl from '~/components/GameControl';
+import { store } from '~/reducers/store';
 import { commitSession, getSession } from '~/session';
 
 interface LoaderData {
@@ -56,27 +56,16 @@ export async function loader({
 export default function Game() {
   const { gameId } = useParams();
   const { wsUrl, name, character } = useLoaderData<LoaderData>();
-  const [state, dispatch] = useWebSocket(wsUrl, gameId || '', {
-    name,
-    character,
-  });
   return (
-    <ReducerProvider>
+    <Provider store={store}>
       <main className="bg-yellow-300 rounded-3xl border-black border-8 p-8">
-        {(() => {
-          switch (state.state) {
-            case 'pending':
-              return (
-                <Lobby
-                  players={state.allPlayers}
-                  player={{ name, character }}
-                />
-              );
-            default:
-              return null;
-          }
-        })()}
+        <GameControl
+          wsUrl={wsUrl}
+          gameId={gameId || ''}
+          name={name}
+          character={character}
+        />
       </main>
-    </ReducerProvider>
+    </Provider>
   );
 }

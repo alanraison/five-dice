@@ -7,6 +7,7 @@ import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
+import logger from '../logger';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation error: TABLE_NAME not set');
@@ -36,12 +37,13 @@ export async function handler(event: WebsocketActionEvent) {
       ProjectionExpression: 'GID,Player',
     })
   );
+  logger.debug(gameIdResponse.$metadata, 'get game id from connection');
   const gameId = gameIdResponse.Item?.GID?.S;
   const player = gameIdResponse.Item?.Player?.S;
   if (!gameId) {
     throw new Error(`Game not found from connection id ${connId}`);
   }
-  await ddb.send(
+  const updateResponse = await ddb.send(
     new UpdateItemCommand({
       TableName: tableName,
       Key: { PK: { S: `GAME#${gameId}` } },
@@ -61,8 +63,9 @@ export async function handler(event: WebsocketActionEvent) {
       },
     })
   );
+  logger.debug(updateResponse.$metadata, 'update response');
 
-  eventBusClient.send(
+  await eventBusClient.send(
     new PutEventsCommand({
       Entries: [
         {
