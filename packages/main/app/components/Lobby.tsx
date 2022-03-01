@@ -12,6 +12,9 @@ export function Lobby({ player }: LobbyProps) {
   const { gameId } = useParams();
   const players = useAppSelector((state) => state.players);
   const dispatch = useAppDispatch();
+  if (!gameId) {
+    throw new Error('Game ID not found');
+  }
   console.log(players);
   const otherPlayers = players.filter((p) => p.name !== player.name);
   return (
@@ -57,7 +60,7 @@ export function Lobby({ player }: LobbyProps) {
             'border-black',
             'rounded-xl'
           )}
-          onClick={() => dispatch(startGame(player.name))}
+          onClick={() => dispatch(startGame(gameId))}
         >
           Start Game
         </button>

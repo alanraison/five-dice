@@ -11,6 +11,7 @@ import Broadcast from './broadcastFunction';
 import JoinGame from './joinGameFunction';
 import LeaveGame from './leaveGameFunction';
 import { StartGame } from './startGameFunction';
+import { StartRound } from './startRoundFunction';
 
 export class RemixStack extends Stack {
   constructor(scope: Construct, id: string) {
@@ -35,7 +36,14 @@ export class RemixStack extends Stack {
         type: AttributeType.STRING,
       },
       projectionType: ProjectionType.INCLUDE,
-      nonKeyAttributes: ['CID', 'GID', 'Player', 'Character'],
+      nonKeyAttributes: [
+        'CID',
+        'GID',
+        'Player',
+        'PlayerNames',
+        'Character',
+        'DiceCount',
+      ],
     });
 
     const wsApi = new WebSocketApi(this, 'Websocket');
@@ -54,9 +62,13 @@ export class RemixStack extends Stack {
       table,
       wsApiStage: wsStage,
     });
-    const startGame = new StartGame(this, 'Start', {
+    const startGame = new StartGame(this, 'StartGame', {
       table,
       eventBus,
+    });
+    const startRound = new StartRound(this, 'StartRound', {
+      table,
+      wsApiStage: wsStage,
     });
 
     wsApi.addRoute('$connect', {
@@ -81,13 +93,20 @@ export class RemixStack extends Stack {
       },
       targets: [new LambdaFunction(broadcast)],
     });
+    new Rule(this, 'StartRoundEvent', {
+      eventBus,
+      eventPattern: {
+        source: ['five-dice-wsapi'],
+        detailType: ['game-started'],
+      },
+      targets: [new LambdaFunction(startRound)],
+    });
 
     const staticBucket = new RemixStaticBucket(this, 'StaticBucket');
     const ssrFunction = new RemixFunction(this, 'Server', {
       serverBuildDirectory: 'server',
       environment: {
         TABLE_NAME: table.tableName,
-        //API_URL: api.url || '',
         WS_API: wsStage.url,
       },
     });

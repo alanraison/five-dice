@@ -1,3 +1,5 @@
+import { IWebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
+import { Stack } from 'aws-cdk-lib';
 import { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
@@ -5,28 +7,28 @@ import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
-export interface StartGameProps {
+export interface StartRoundProps {
   table: ITable;
-  eventBus: IEventBus;
+  wsApiStage: IWebSocketStage;
 }
 
-export class StartGame extends NodejsFunction {
+export class StartRound extends NodejsFunction {
   constructor(
     scope: Construct,
     id: string,
-    { table, eventBus }: StartGameProps
+    { table, wsApiStage }: StartRoundProps
   ) {
     super(scope, id, {
-      entry: require.resolve('../src/startGame'),
+      entry: require.resolve('../src/startRound'),
       environment: {
         TABLE_NAME: table.tableName,
-        EVENTBUS_NAME: eventBus.eventBusName,
+        WSAPI_URL: wsApiStage.callbackUrl,
       },
       tracing: Tracing.ACTIVE,
     });
     this.addToRolePolicy(
       new PolicyStatement({
-        actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
+        actions: ['dynamodb:UpdateItem'],
         resources: [table.tableArn],
       })
     );
@@ -38,8 +40,13 @@ export class StartGame extends NodejsFunction {
     );
     this.addToRolePolicy(
       new PolicyStatement({
-        actions: ['events:PutEvents'],
-        resources: [eventBus.eventBusArn],
+        actions: ['execute-api:ManageConnections'],
+        resources: [
+          Stack.of(this).formatArn({
+            service: 'execute-api',
+            resource: `${wsApiStage.api.apiId}/${wsApiStage.stageName}/POST/@connections/{connectionId}`,
+          }),
+        ],
       })
     );
   }

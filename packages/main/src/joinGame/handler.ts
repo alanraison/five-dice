@@ -22,8 +22,7 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
     });
   }
   const gameId = gameIdEnc.replace(/-/g, '+').replace(/_/g, '/');
-  logger.info({
-    msg: 'join game',
+  logger.info('join game', {
     name,
     connectionId: event.requestContext.connectionId,
   });

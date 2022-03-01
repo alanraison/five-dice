@@ -64,7 +64,7 @@ describe('JoinGameDAO', () => {
   it('should return the current player list if the player joins successfully', async () => {
     (mockDynamoDBClient.send as jest.Mock).mockResolvedValueOnce({
       Attributes: {
-        Players: {
+        PlayerNames: {
           SS: ['player1', 'player2', 'player3'],
         },
       },

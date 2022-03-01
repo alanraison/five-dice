@@ -1,6 +1,7 @@
 import { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
@@ -23,6 +24,7 @@ export default class LeaveGame extends NodejsFunction {
         TABLE_NAME: table.tableName,
         EVENTBUS_NAME: eventBus.eventBusName,
       },
+      tracing: Tracing.ACTIVE,
     });
     this.addToRolePolicy(
       new PolicyStatement({

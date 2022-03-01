@@ -40,12 +40,12 @@ export function exit(): ExitCommand {
 }
 
 export interface StartGameCommand extends Action<typeof START> {
-  startedBy: string;
+  gameId: string;
 }
 
-export function startGame(startedBy: string): StartGameCommand {
+export function startGame(gameId: string): StartGameCommand {
   return {
     type: START,
-    startedBy,
+    gameId,
   };
 }

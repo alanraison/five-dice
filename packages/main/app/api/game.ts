@@ -28,11 +28,11 @@ export async function nameTaken(gameId: string, name: string) {
       Key: {
         PK: { S: `GAME#${gameId}` },
       },
-      ProjectionExpression: '#players',
+      ProjectionExpression: '#playerNames',
       ExpressionAttributeNames: {
-        '#players': 'Players',
+        '#playerNames': 'PlayerNames',
       },
     })
   );
-  return result.Item?.Players?.SS?.includes(name);
+  return result.Item?.PlayerNames?.SS?.includes(name);
 }

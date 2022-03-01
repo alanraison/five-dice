@@ -2,6 +2,7 @@ import { IWebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { Stack } from 'aws-cdk-lib';
 import { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
@@ -23,6 +24,7 @@ export default class Broadcast extends NodejsFunction {
         TABLE_NAME: table.tableName,
         WSAPI_URL: wsApiStage.callbackUrl,
       },
+      tracing: Tracing.ACTIVE,
     });
     this.addToRolePolicy(
       new PolicyStatement({

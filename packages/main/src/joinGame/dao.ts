@@ -8,6 +8,9 @@ import {
 import { DateTime } from 'luxon';
 import logger from '../logger';
 import { Player } from '../types';
+import getConnectionsForGameFactory, {
+  Attributes,
+} from '../getConnectionsForGame';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation Error: No Table given');
@@ -34,6 +37,8 @@ export class UnsuccessfulJoinGameResponse {
 const table = process.env.TABLE_NAME;
 const ddb = new DynamoDBClient({ endpoint: process.env.DYNAMO_ENDPOINT });
 
+const getConnectionsForGame = getConnectionsForGameFactory(ddb, table);
+
 export default async function joinGameDAO(
   gameId: string,
   player: Player,
@@ -41,20 +46,20 @@ export default async function joinGameDAO(
 ) {
   try {
     const ttl = DateTime.now().plus({ days: 1 }).toSeconds().toString(10);
-    await ddb.send(
+    const updateGameResult = await ddb.send(
       new UpdateItemCommand({
         TableName: table,
         Key: {
           PK: { S: `GAME#${gameId}` },
         },
-        UpdateExpression: 'Add #players :players',
+        UpdateExpression: 'Add #playerNames :playerNames',
         ExpressionAttributeNames: {
           '#pk': 'PK',
           '#status': 'Status',
-          '#players': 'Players',
+          '#playerNames': 'PlayerNames',
         },
         ExpressionAttributeValues: {
-          ':players': { SS: [player.name] },
+          ':playerNames': { SS: [player.name] },
           ':player': { S: player.name },
           ':maxItems': { N: '6' },
           ':pending': { S: 'Pending' },
@@ -63,17 +68,18 @@ export default async function joinGameDAO(
           '    attribute_exists(#pk) ' +
           'AND #status = :pending ' +
           'AND (' +
-          '        attribute_not_exists(#players) ' +
+          '        attribute_not_exists(#playerNames) ' +
           '     OR (' +
-          '         NOT contains(#players, :player)' +
-          '         AND size(#players) < :maxItems' +
+          '         NOT contains(#playerNames, :player)' +
+          '         AND size(#playerNames) < :maxItems' +
           '     )' +
           ')',
         ReturnValues: 'ALL_NEW',
       })
     );
+    logger.debug(updateGameResult, 'update game');
 
-    await ddb.send(
+    const addConnectionResult = await ddb.send(
       new PutItemCommand({
         TableName: table,
         Item: {
@@ -85,28 +91,17 @@ export default async function joinGameDAO(
           GID: { S: gameId },
           Player: { S: player.name },
           Character: { S: player.character },
+          DiceCount: { N: '5' },
           Ttl: { N: ttl },
         },
       })
     );
-    const allPlayers = await ddb.send(
-      new QueryCommand({
-        TableName: table,
-        IndexName: 'Connections',
-        KeyConditionExpression: '#pk = :gameId AND begins_with(#sk, :conn)',
-        ExpressionAttributeNames: {
-          '#pk': 'GSI1PK',
-          '#sk': 'GSI1SK',
-          '#player': 'Player',
-          '#character': 'Character',
-        },
-        ExpressionAttributeValues: {
-          ':gameId': { S: gameId },
-          ':conn': { S: 'CONN#' },
-        },
-        ProjectionExpression: '#player,#character',
-      })
-    );
+    logger.debug(addConnectionResult, 'add connection result');
+    const allPlayers = await getConnectionsForGame(gameId, [
+      Attributes.player,
+      Attributes.character,
+    ]);
+    logger.debug(allPlayers, 'find all players');
 
     return new SuccessfulJoinGameResponse(
       allPlayers.Items?.map((item) => ({
