@@ -2,15 +2,16 @@ import classNames from 'classnames';
 import { Link, useParams } from 'remix';
 import { exit, startGame } from '~/reducers/commands';
 import { useAppDispatch, useAppSelector } from '~/reducers/hooks';
-import { Player } from '~/types';
 
-interface LobbyProps {
-  player: Player;
-}
+const playerUnknown = {
+  name: 'Unknown',
+  character: '',
+};
 
-export function Lobby({ player }: LobbyProps) {
+export function Lobby() {
   const { gameId } = useParams();
   const players = useAppSelector((state) => state.players);
+  const player = useAppSelector((state) => state.player) || playerUnknown;
   const dispatch = useAppDispatch();
   if (!gameId) {
     throw new Error('Game ID not found');
@@ -60,7 +61,7 @@ export function Lobby({ player }: LobbyProps) {
             'border-black',
             'rounded-xl'
           )}
-          onClick={() => dispatch(startGame(gameId))}
+          onClick={() => dispatch(startGame())}
         >
           Start Game
         </button>

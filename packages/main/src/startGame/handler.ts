@@ -1,4 +1,3 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   EventBridgeClient,
   PutEventsCommand,
@@ -6,9 +5,6 @@ import {
 import logger from '../logger';
 import { checkGameDetails, updateGame } from './dao';
 
-if (!process.env.TABLE_NAME) {
-  throw new Error('Initialisation error: TABLE_NAME not set');
-}
 if (!process.env.EVENTBUS_NAME) {
   throw new Error('Initialisation error: EVENTBUS_NAME not set');
 }

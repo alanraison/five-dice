@@ -5,6 +5,7 @@ import { RootState } from '~/reducers/store';
 import { open } from '~/reducers/commands';
 import { Lobby } from './Lobby';
 import { PendingState, InProgressState } from '~/reducers/state';
+import { Round } from './Round';
 
 interface GameControlProps {
   wsUrl: string;
@@ -26,16 +27,9 @@ export default function GameControl({
   }, [useDispatch, wsUrl, gameId, name, character]);
   switch (state) {
     case PendingState:
-      return (
-        <Lobby
-          player={{
-            name,
-            character,
-          }}
-        />
-      );
+      return <Lobby />;
     case InProgressState:
-      return <div>Game Started</div>;
+      return <Round />;
     default:
       return <div>other state</div>;
   }

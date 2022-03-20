@@ -59,19 +59,15 @@ export async function handler(event: APIGatewayWebsocketProxyEvent) {
       Key: {
         PK: { S: `GAME#${gameId}` },
       },
-      UpdateExpression: 'Delete #playerNames :playerName',
+      UpdateExpression: 'Remove #characters.#player',
       ExpressionAttributeNames: {
-        '#playerNames': 'PlayerNames',
-      },
-      ExpressionAttributeValues: {
-        ':playerName': { SS: [player as string] },
+        '#characters': 'Characters',
+        '#player': player,
       },
       ReturnValues: 'ALL_NEW',
     })
   );
-  const players = updateResult.Attributes?.Players?.L?.map(
-    (player) => player.S
-  );
+  const players = Object.keys(updateResult.Attributes?.Characters?.M || {});
   await eventBridgeClient.send(
     new PutEventsCommand({
       Entries: [

@@ -52,25 +52,25 @@ export async function saveDice(
         ReturnValues: 'ALL_NEW',
       })
     ),
-    Object.entries(connections.byConnection).map(([conn, dice]) =>
-      ddb.send(
-        new UpdateItemCommand({
-          TableName: table,
-          Key: {
-            PK: { S: `CONN#${conn}` },
-          },
-          UpdateExpression: 'SET #dice = :dice',
-          ExpressionAttributeNames: {
-            '#dice': 'Dice',
-          },
-          ExpressionAttributeValues: {
-            ':dice': {
-              L: dice.map((d) => ({ N: d.toString() })),
-            },
-          },
-        })
-      )
-    ),
+    // Object.entries(connections.byConnection).map(([conn, dice]) =>
+    //   ddb.send(
+    //     new UpdateItemCommand({
+    //       TableName: table,
+    //       Key: {
+    //         PK: { S: `CONN#${conn}` },
+    //       },
+    //       UpdateExpression: 'SET #dice = :dice',
+    //       ExpressionAttributeNames: {
+    //         '#dice': 'Dice',
+    //       },
+    //       ExpressionAttributeValues: {
+    //         ':dice': {
+    //           L: dice.map((d) => ({ N: d.toString() })),
+    //         },
+    //       },
+    //     })
+    //   )
+    // ),
   ]);
   const failed = updates.filter(
     (promise) => promise.status === 'rejected'
@@ -78,12 +78,12 @@ export async function saveDice(
   if (failed.length > 0) {
     throw new Error(`Some updates failed: ${failed.map((p) => p.reason)}`);
   }
-  const nextToStart =
+  const nextPlayer =
     updates[0].status === 'fulfilled'
-      ? updates[0].value.Attributes?.NextToStart?.S
+      ? updates[0].value.Attributes?.NextPlayer?.S
       : undefined;
-  if (!nextToStart) {
-    throw new Error('NextToStart not found');
+  if (!nextPlayer) {
+    throw new Error('NextPlayer not found');
   }
-  return nextToStart;
+  return nextPlayer;
 }

@@ -6,10 +6,12 @@ import { z } from 'zod';
 export const PLAYER_JOINED = 'player-joined';
 export const PLAYER_LEFT = 'player-left';
 export const GAME_STARTED = 'game-started';
+export const ROUND_STARTED = 'round-started';
 export enum all {
   PLAYER_JOINED,
   PLAYER_LEFT,
   GAME_STARTED,
+  ROUND_STARTED,
 }
 
 const player = z.object({
@@ -40,6 +42,13 @@ const gameStartedAction = z.object({
   startedBy: z.string(),
 });
 
+const roundStartedAction = z.object({
+  type: z.literal(ROUND_STARTED),
+  dice: z.array(z.number()),
+  firstPlayer: z.string(),
+});
+export type RoundStartedAction = z.infer<typeof roundStartedAction>;
+
 export function parseToAction<T extends { event: string }>({
   event,
   ...rest
@@ -60,6 +69,9 @@ export function parseToAction<T extends { event: string }>({
     case GAME_STARTED:
       console.log('parsing game started');
       return gameStartedAction.parse(ev);
+    case ROUND_STARTED:
+      console.log('parsing round started');
+      return roundStartedAction.parse(ev);
     default:
       console.log('event not recognised');
       return undefined;

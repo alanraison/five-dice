@@ -24,15 +24,16 @@ export async function gameExists(gameId?: string) {
 export async function nameTaken(gameId: string, name: string) {
   const result = await ddb.send(
     new GetItemCommand({
-      TableName: process.env.TABLE_NAME,
+      TableName: table,
       Key: {
         PK: { S: `GAME#${gameId}` },
       },
-      ProjectionExpression: '#playerNames',
+      ProjectionExpression: '#characters.#player',
       ExpressionAttributeNames: {
-        '#playerNames': 'PlayerNames',
+        '#characters': 'Characters',
+        '#player': name,
       },
     })
   );
-  return result.Item?.PlayerNames?.SS?.includes(name);
+  return !!result.Item?.Characters?.M?.[name]?.S;
 }

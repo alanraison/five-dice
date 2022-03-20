@@ -3,6 +3,7 @@ import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface StartGameProps {
@@ -23,6 +24,7 @@ export class StartGame extends NodejsFunction {
         EVENTBUS_NAME: eventBus.eventBusName,
       },
       tracing: Tracing.ACTIVE,
+      logRetention: RetentionDays.ONE_DAY,
     });
     this.addToRolePolicy(
       new PolicyStatement({
@@ -33,7 +35,7 @@ export class StartGame extends NodejsFunction {
     this.addToRolePolicy(
       new PolicyStatement({
         actions: ['dynamodb:Query'],
-        resources: [`${table.tableArn}/index/Connections`],
+        resources: [`${table.tableArn}/index/GSI2`],
       })
     );
     this.addToRolePolicy(

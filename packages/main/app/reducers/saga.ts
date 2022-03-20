@@ -60,11 +60,13 @@ function* processMessage(
 
 function sendMessage<T extends { type: string }>(
   websocket: WebSocket,
+  gameId: string,
   { type, ...rest }: T
 ) {
   websocket.send(
     JSON.stringify({
       action: type,
+      gameId,
       ...rest,
     })
   );
@@ -82,7 +84,7 @@ function* connect(
   )) as WebSocket;
   const chan = (yield call(wsChannel, ws)) as EventChannel<any>;
   yield takeEvery(chan, processMessage);
-  yield takeEvery([START], sendMessage, ws);
+  yield takeEvery([START], sendMessage, ws, action.gameId);
   yield take(EXIT);
   chan.close();
 }

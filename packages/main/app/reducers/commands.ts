@@ -3,10 +3,12 @@ import { Action } from 'redux';
 export const OPEN = 'open';
 export const EXIT = 'exit';
 export const START = 'start';
+export const BID = 'bid';
 export enum all {
   OPEN,
   EXIT,
   START,
+  BID,
 }
 
 export interface OpenCommand extends Action<typeof OPEN> {
@@ -39,13 +41,23 @@ export function exit(): ExitCommand {
   };
 }
 
-export interface StartGameCommand extends Action<typeof START> {
-  gameId: string;
-}
+export interface StartGameCommand extends Action<typeof START> {}
 
-export function startGame(gameId: string): StartGameCommand {
+export function startGame(): StartGameCommand {
   return {
     type: START,
-    gameId,
+  };
+}
+
+export interface BidCommand extends Action<typeof BID> {
+  q: number;
+  v: number;
+}
+
+export function bid(q: number, v: number): BidCommand {
+  return {
+    type: BID,
+    q,
+    v,
   };
 }

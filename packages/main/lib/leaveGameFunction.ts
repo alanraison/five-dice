@@ -3,6 +3,7 @@ import { IEventBus } from 'aws-cdk-lib/aws-events';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface LeaveGameProps {
@@ -25,6 +26,7 @@ export default class LeaveGame extends NodejsFunction {
         EVENTBUS_NAME: eventBus.eventBusName,
       },
       tracing: Tracing.ACTIVE,
+      logRetention: RetentionDays.ONE_DAY,
     });
     this.addToRolePolicy(
       new PolicyStatement({

@@ -5,7 +5,7 @@ export enum Attributes {
   cid = '#cid',
   gid = '#gid',
   player = '#player',
-  character = '#character',
+  // character = '#character',
   diceCount = '#diceCount',
 }
 
@@ -18,7 +18,7 @@ export default function (ddb: DynamoDBClient, table: string) {
     const result = await ddb.send(
       new QueryCommand({
         TableName: table,
-        IndexName: 'Connections',
+        IndexName: 'GSI1',
         KeyConditionExpression: '#pk = :gameId AND begins_with(#sk, :conn)',
         ExpressionAttributeNames: {
           '#pk': 'GSI1PK',
@@ -44,9 +44,9 @@ function getAttributes(attributes: Array<Attributes>) {
     ...(attributes.includes(Attributes.player)
       ? { '#player': 'Player' }
       : undefined),
-    ...(attributes.includes(Attributes.character)
-      ? { '#character': 'Character' }
-      : undefined),
+    // ...(attributes.includes(Attributes.character)
+    //   ? { '#character': 'Character' }
+    //   : undefined),
     ...(attributes.includes(Attributes.diceCount)
       ? { '#diceCount': 'DiceCount' }
       : undefined),

@@ -1,12 +1,15 @@
 import { WebSocketApi, WebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
 import { WebSocketLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha';
 import { CfnOutput, RemovalPolicy, Stack } from 'aws-cdk-lib';
+import { CfnIntegration, CfnRoute } from 'aws-cdk-lib/aws-apigatewayv2';
 import { AttributeType, ProjectionType, Table } from 'aws-cdk-lib/aws-dynamodb';
 import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
 import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import P from 'pino';
 import { RemixApi, RemixFunction, RemixStaticBucket } from 'remix-cdk';
+import { BidFunction } from './bidFunction';
 import Broadcast from './broadcastFunction';
 import JoinGame from './joinGameFunction';
 import LeaveGame from './leaveGameFunction';
@@ -26,7 +29,7 @@ export class RemixStack extends Stack {
       removalPolicy: RemovalPolicy.DESTROY,
     });
     table.addGlobalSecondaryIndex({
-      indexName: 'Connections',
+      indexName: 'GSI1',
       partitionKey: {
         name: 'GSI1PK',
         type: AttributeType.STRING,
@@ -36,13 +39,26 @@ export class RemixStack extends Stack {
         type: AttributeType.STRING,
       },
       projectionType: ProjectionType.INCLUDE,
+      nonKeyAttributes: ['CID', 'GID', 'Player', 'DiceCount'],
+    });
+    table.addGlobalSecondaryIndex({
+      indexName: 'GSI2',
+      partitionKey: {
+        name: 'GSI2PK',
+        type: AttributeType.STRING,
+      },
+      sortKey: {
+        name: 'GSI2SK',
+        type: AttributeType.STRING,
+      },
+      projectionType: ProjectionType.INCLUDE,
       nonKeyAttributes: [
-        'CID',
-        'GID',
         'Player',
-        'PlayerNames',
-        'Character',
-        'DiceCount',
+        'Characters',
+        'Players',
+        'NextPlayer',
+        'Dice',
+        'Bid',
       ],
     });
 
@@ -70,6 +86,10 @@ export class RemixStack extends Stack {
       table,
       wsApiStage: wsStage,
     });
+    const bid = new BidFunction(this, 'Bid', {
+      eventBus,
+      table,
+    });
 
     wsApi.addRoute('$connect', {
       integration: new WebSocketLambdaIntegration('ConnectIntegration', join),
@@ -86,6 +106,35 @@ export class RemixStack extends Stack {
         startGame
       ),
     });
+    const integrationArn = Stack.of(bid.stateMachine).formatArn({
+      account: 'states',
+      resource: 'action',
+      resourceName: 'StartExecution',
+      service: 'apigateway',
+    });
+    const bidIntegration = new CfnIntegration(this, 'BidIntegration', {
+      apiId: wsApi.apiId,
+      integrationType: 'AWS',
+      integrationUri: integrationArn,
+      integrationMethod: 'POST',
+      credentialsArn: bid.invokeRole.roleArn,
+      templateSelectionExpression: 'bid',
+      requestTemplates: {
+        bid: `#set($body = $input.path('$'))
+#set($dummy = $body.put("connectionId", $context.connectionId))
+{
+  "input": "$util.escapeJavaScript($input.json('$')).replaceAll(\"\\\\'\",\"'\")",
+  "stateMachineArn":"${bid.stateMachine.stateMachineArn}"
+}`,
+      },
+    });
+
+    new CfnRoute(this, 'BidRoute', {
+      apiId: wsApi.apiId,
+      routeKey: 'bid',
+      target: `integrations/${bidIntegration.ref}`,
+    });
+
     new Rule(this, 'Events', {
       eventBus,
       eventPattern: {

@@ -4,6 +4,7 @@ import { ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface BroadcastProps {
@@ -25,11 +26,12 @@ export default class Broadcast extends NodejsFunction {
         WSAPI_URL: wsApiStage.callbackUrl,
       },
       tracing: Tracing.ACTIVE,
+      logRetention: RetentionDays.ONE_DAY,
     });
     this.addToRolePolicy(
       new PolicyStatement({
         actions: ['dynamodb:Query'],
-        resources: [`${table.tableArn}/index/Connections`],
+        resources: [`${table.tableArn}/index/GSI1`],
       })
     );
     this.addToRolePolicy(

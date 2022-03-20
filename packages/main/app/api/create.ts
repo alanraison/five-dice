@@ -29,13 +29,12 @@ export async function createGame(): Promise<string> {
       Item: {
         PK: { S: `GAME#${name}` },
         T: { S: 'Game' },
-        GSI1PK: { S: name },
-        GSI1SK: { S: `GAME#${name}` },
         GID: { S: name },
         Status: { S: 'Pending' },
-        Ttl: {
-          N: ttl,
-        },
+        Characters: { M: {} },
+        GSI2PK: { S: name },
+        GSI2SK: { S: 'GAME' },
+        Ttl: { N: ttl },
       },
       ConditionExpression: 'attribute_not_exists(#pk)',
       ExpressionAttributeNames: {

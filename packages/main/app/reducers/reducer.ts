@@ -1,22 +1,10 @@
-import { Action } from 'redux';
 import { Player } from '~/types';
-import { InProgressState, PendingState } from './state';
 import { GameAction } from './actions';
-import { GAME_STARTED, PLAYER_JOINED, PLAYER_LEFT } from './events';
+import { PLAYER_JOINED, PLAYER_LEFT } from './events';
 import { EXIT } from './commands';
 
-export function state(state: string | undefined, action: Action<any>): string {
-  switch (action.type) {
-    case GAME_STARTED: {
-      return InProgressState;
-    }
-    default:
-      return state || PendingState;
-  }
-}
-
 export function players(
-  state: Array<Player> | undefined,
+  state: Array<Player> = [],
   action: GameAction
 ): Array<Player> {
   console.log(action);
@@ -36,6 +24,6 @@ export function players(
     case EXIT:
       return [];
     default:
-      return state || [];
+      return state;
   }
 }

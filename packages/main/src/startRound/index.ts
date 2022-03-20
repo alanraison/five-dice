@@ -83,7 +83,7 @@ export async function handler(
   const diceByConnection = diceByConnectionAndPlayer(connections);
   logger.debug(diceByConnection, 'dice by connection and player');
   // update connection and game
-  const nextToStart = await saveDice(gameId, diceByConnection); // check for errors!
+  const nextPlayer = await saveDice(gameId, diceByConnection); // check for errors!
   // notify connection
   const sendDiceToPlayers = await Promise.allSettled(
     Object.entries(diceByConnection.byConnection).map(([conn, dice]) =>
@@ -94,7 +94,7 @@ export async function handler(
             JSON.stringify({
               event: 'round-started',
               dice,
-              firstPlayer: nextToStart,
+              firstPlayer: nextPlayer,
             })
           ),
         })
