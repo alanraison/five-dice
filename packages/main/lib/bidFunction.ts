@@ -98,7 +98,7 @@ export class BidFunction extends Construct {
                     nextPlayer: JsonPath.stringAt('$.data.nextPlayer'),
                   }),
                   detailType: 'bid-increased',
-                  source: JsonPath.stringAt('$.gameId'),
+                  source: 'five-dice-wsapi',
                 },
               ],
             })
@@ -133,19 +133,16 @@ export class BidFunction extends Construct {
         }),
       },
     });
-    /* , {
-    }
-    this.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['execute-api:ManageConnections'],
-        resources: [
-          Stack.of(this).formatArn({
-            service: 'execute-api',
-            resource: `${wsApiStage.api.apiId}/${wsApiStage.stageName}/POST/@connections/{connectionId}`,
-          }),
-        ],
-      })
-    );
-    */
+    // this.addToRolePolicy(
+    //   new PolicyStatement({
+    //     actions: ['execute-api:ManageConnections'],
+    //     resources: [
+    //       Stack.of(this).formatArn({
+    //         service: 'execute-api',
+    //         resource: `${wsApiStage.api.apiId}/${wsApiStage.stageName}/POST/@connections/{connectionId}`,
+    //       }),
+    //     ],
+    //   })
+    // );
   }
 }

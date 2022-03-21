@@ -7,11 +7,13 @@ export const PLAYER_JOINED = 'player-joined';
 export const PLAYER_LEFT = 'player-left';
 export const GAME_STARTED = 'game-started';
 export const ROUND_STARTED = 'round-started';
+export const BID_INCREASED = 'bid-increased';
 export enum all {
   PLAYER_JOINED,
   PLAYER_LEFT,
   GAME_STARTED,
   ROUND_STARTED,
+  BID_INCREASED,
 }
 
 const player = z.object({
@@ -49,6 +51,15 @@ const roundStartedAction = z.object({
 });
 export type RoundStartedAction = z.infer<typeof roundStartedAction>;
 
+const bidIncreasedAction = z.object({
+  type: z.literal(BID_INCREASED),
+  q: z.number(),
+  v: z.number(),
+  bidder: z.string(),
+  nextPlayer: z.string(),
+});
+export type BidIncreasedAction = z.infer<typeof bidIncreasedAction>;
+
 export function parseToAction<T extends { event: string }>({
   event,
   ...rest
@@ -72,6 +83,8 @@ export function parseToAction<T extends { event: string }>({
     case ROUND_STARTED:
       console.log('parsing round started');
       return roundStartedAction.parse(ev);
+    case BID_INCREASED:
+      return bidIncreasedAction.parse(ev);
     default:
       console.log('event not recognised');
       return undefined;

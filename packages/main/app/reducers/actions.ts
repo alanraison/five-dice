@@ -14,6 +14,7 @@ export type GameAction =
   | events.PlayerJoinedAction
   | events.PlayerLeftAction
   | events.RoundStartedAction
+  | events.BidIncreasedAction
   | commands.OpenCommand
   | commands.ExitCommand
   | commands.StartGameCommand

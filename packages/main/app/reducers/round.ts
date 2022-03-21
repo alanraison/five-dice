@@ -1,7 +1,6 @@
 import { combineReducers } from 'redux';
-import { Bid } from '~/types';
 import { GameAction } from './actions';
-import { ROUND_STARTED } from './events';
+import { BID_INCREASED, ROUND_STARTED } from './events';
 
 function dice(state: Array<number> = [], action: GameAction) {
   switch (action.type) {
@@ -16,13 +15,27 @@ function player(state: string = '', action: GameAction) {
   switch (action.type) {
     case ROUND_STARTED:
       return action.firstPlayer;
+    case BID_INCREASED:
+      return action.nextPlayer;
     default:
       return state;
   }
 }
 
+interface Bid {
+  q: number;
+  v: number;
+  bidder: string;
+}
+
 function bid(state: Bid | null = null, action: GameAction) {
   switch (action.type) {
+    case BID_INCREASED:
+      return {
+        q: action.q,
+        v: action.v,
+        bidder: action.bidder,
+      };
     default:
       return state;
   }
