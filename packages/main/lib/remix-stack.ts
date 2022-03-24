@@ -89,6 +89,7 @@ export class RemixStack extends Stack {
     const bid = new BidFunction(this, 'Bid', {
       eventBus,
       table,
+      wsApiStage: wsStage,
     });
 
     wsApi.addRoute('$connect', {

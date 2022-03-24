@@ -31,11 +31,8 @@ interface Bid {
 function bid(state: Bid | null = null, action: GameAction) {
   switch (action.type) {
     case BID_INCREASED:
-      return {
-        q: action.q,
-        v: action.v,
-        bidder: action.bidder,
-      };
+      const { q, v, bidder } = action;
+      return { q, v, bidder };
     default:
       return state;
   }

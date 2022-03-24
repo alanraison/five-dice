@@ -2,41 +2,51 @@ import { z } from 'zod';
 import logger from '../../logger';
 
 const validateEvent = z.object({
-  q: z.number(),
-  v: z.number(),
-  data: z.object({
-    isCurrentBidder: z.boolean(),
-    currentBid: z.object({
-      q: z.number(),
-      v: z.number(),
-    }),
+  newBid: z.object({
+    q: z.number(),
+    v: z.number(),
+  }),
+  currentBid: z.object({
+    q: z.number(),
+    v: z.number(),
   }),
 });
 
 export async function handler(event: z.infer<typeof validateEvent>) {
   const validate = validateEvent.parse(event);
-  const newBid = {
-    q: validate.q,
-    v: validate.v,
-  };
-  const current = validate.data.currentBid;
-  const isCurrentBidder = validate.data.isCurrentBidder;
-  logger.info({ newBid, current, isCurrentBidder }, 'validating bid');
+  const { currentBid, newBid } = validate;
+  logger.info({ newBid, currentBid }, 'validating bid');
 
-  if (!isCurrentBidder) {
-    logger.warn({ isCurrentBidder }, 'bid received from wrong player');
-    return false;
-  }
   if (newBid.v < 2 || newBid.v > 7) {
-    throw new Error(`Values out of range: ${newBid.v}`);
+    return {
+      valid: false,
+      reason: `bid value out of range: ${newBid.v}`,
+    };
   }
-  if (current.v === 7 && newBid.v < 7) {
-    return newBid.q >= current.q * 2 + 1;
+  if (currentBid.v === 7 && newBid.v < 7) {
+    const valid = newBid.q >= currentBid.q * 2 + 1;
+    const reason = `bid quantity too low, must be >= ${currentBid.q * 2 + 1}`;
+    return {
+      valid,
+      ...(!valid ? { reason } : undefined),
+    };
   }
-  if (current.v < 7 && newBid.v === 7) {
-    return newBid.q >= current.q / 2;
+  if (currentBid.v < 7 && newBid.v === 7) {
+    const valid = newBid.q >= currentBid.q / 2;
+    const reason = `bid quantity too low, must be >= ${Math.ceil(
+      currentBid.q / 2
+    )}`;
+    return {
+      valid,
+      ...(!valid ? { reason } : undefined),
+    };
   }
-  return (
-    newBid.q > current.q || (newBid.q === current.q && newBid.v > current.v)
-  );
+  const valid =
+    newBid.q > currentBid.q ||
+    (newBid.q === currentBid.q && newBid.v > currentBid.v);
+  const reason = `bid too low, quantity must be > ${currentBid.q} and/or value must be > ${currentBid.v} or an ace`;
+  return {
+    valid,
+    ...(!valid ? { reason } : undefined),
+  };
 }
