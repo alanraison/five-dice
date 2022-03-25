@@ -16,7 +16,7 @@ export function Lobby() {
   if (!gameId) {
     throw new Error('Game ID not found');
   }
-  console.log(players);
+  console.debug(players);
   const otherPlayers = players.filter((p) => p.name !== player.name);
   return (
     <>

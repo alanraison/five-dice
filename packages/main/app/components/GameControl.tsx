@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useAppDispatch } from '~/reducers/hooks';
-import { RootState } from '~/reducers/store';
+import { useSelector } from 'react-redux';
 import { open } from '~/reducers/commands';
+import { useAppDispatch } from '~/reducers/hooks';
+import { InProgressState, PendingState } from '~/reducers/state';
+import { RootState } from '~/reducers/store';
 import { Lobby } from './Lobby';
-import { PendingState, InProgressState } from '~/reducers/state';
 import { Round } from './Round';
 
 interface GameControlProps {
@@ -24,7 +24,7 @@ export default function GameControl({
   const dispatch = useAppDispatch();
   useEffect(() => {
     dispatch(open(wsUrl, gameId, name, character));
-  }, [useDispatch, wsUrl, gameId, name, character]);
+  }, [dispatch, wsUrl, gameId, name, character]);
   switch (state) {
     case PendingState:
       return <Lobby />;

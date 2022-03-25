@@ -103,7 +103,7 @@ export class BidFunction extends Construct {
       lambdaFunction: sendMessageFunction,
       payload: TaskInput.fromObject({
         connectionId: JsonPath.stringAt('$.connectionId'),
-        message: { error: 'Bid not expected' },
+        message: { event: 'error', message: 'Bid not expected' },
       }),
     });
     const invokeValidatation = new LambdaInvoke(this, 'ValidateBid', {
@@ -128,7 +128,8 @@ export class BidFunction extends Construct {
         payload: TaskInput.fromObject({
           connectionId: JsonPath.stringAt('$.connectionId'),
           message: {
-            error: JsonPath.stringAt('$.validate.result.reason'),
+            event: 'error',
+            message: JsonPath.stringAt('$.validate.result.reason'),
           },
         }),
       }

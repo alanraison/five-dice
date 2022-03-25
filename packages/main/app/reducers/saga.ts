@@ -10,7 +10,7 @@ import {
   TakeEffect,
   takeEvery,
 } from 'redux-saga/effects';
-import { EXIT, OPEN, OpenCommand, START } from './commands';
+import { BID, EXIT, OPEN, OpenCommand, START } from './commands';
 import { parseToAction } from './events';
 
 function createWebsocket(
@@ -84,7 +84,7 @@ function* connect(
   )) as WebSocket;
   const chan = (yield call(wsChannel, ws)) as EventChannel<any>;
   yield takeEvery(chan, processMessage);
-  yield takeEvery([START], sendMessage, ws, action.gameId);
+  yield takeEvery([START, BID], sendMessage, ws, action.gameId);
   yield take(EXIT);
   chan.close();
 }

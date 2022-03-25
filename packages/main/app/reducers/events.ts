@@ -8,12 +8,14 @@ export const PLAYER_LEFT = 'player-left';
 export const GAME_STARTED = 'game-started';
 export const ROUND_STARTED = 'round-started';
 export const BID_INCREASED = 'bid-increased';
+export const ERROR = 'error';
 export enum all {
   PLAYER_JOINED,
   PLAYER_LEFT,
   GAME_STARTED,
   ROUND_STARTED,
   BID_INCREASED,
+  ERROR,
 }
 
 const player = z.object({
@@ -60,33 +62,40 @@ const bidIncreasedAction = z.object({
 });
 export type BidIncreasedAction = z.infer<typeof bidIncreasedAction>;
 
+const errorAction = z.object({
+  type: z.literal('error'),
+  message: z.string(),
+});
+export type ErrorAction = z.infer<typeof errorAction>;
+
 export function parseToAction<T extends { event: string }>({
   event,
   ...rest
 }: T): Action | undefined {
-  console.log(`parsing event ${event}`);
+  console.debug(`parsing event ${event}`);
   const ev = {
     type: event,
     ...rest,
   };
-  console.log(ev);
   switch (event) {
     case PLAYER_JOINED:
-      console.log('parsing player joined');
+      console.debug('parsing player joined');
       return playerJoinedAction.parse(ev);
     case PLAYER_LEFT:
-      console.log('parsing player left');
+      console.debug('parsing player left');
       return playerLeftAction.parse(ev);
     case GAME_STARTED:
-      console.log('parsing game started');
+      console.debug('parsing game started');
       return gameStartedAction.parse(ev);
     case ROUND_STARTED:
-      console.log('parsing round started');
+      console.debug('parsing round started');
       return roundStartedAction.parse(ev);
     case BID_INCREASED:
       return bidIncreasedAction.parse(ev);
+    case ERROR:
+      return errorAction.parse(ev);
     default:
-      console.log('event not recognised');
+      console.warn(`event not recognised: ${ev.type}`);
       return undefined;
   }
 }
