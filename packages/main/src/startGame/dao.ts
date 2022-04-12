@@ -57,7 +57,7 @@ export async function checkGameDetails(
 }
 
 export async function updateGame(gameId: string, allPlayers: Array<Player>) {
-  const randomPlayer = 0; //randomInt(allPlayers.length);
+  const randomPlayer = randomInt(allPlayers.length);
   const updateResponse = await ddb.send(
     new UpdateItemCommand({
       TableName: table,

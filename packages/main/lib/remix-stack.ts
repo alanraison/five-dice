@@ -9,10 +9,16 @@ import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
 import P from 'pino';
 import { RemixApi, RemixFunction, RemixStaticBucket } from 'remix-cdk';
-import { BidFunction } from './bidFunction';
+import { Bid } from './bid';
+import { Flow as BidFlow } from './bid/flow';
 import Broadcast from './broadcastFunction';
+import { Challenge } from './challenge';
+import { Flow as ChallengeFlow } from './challenge/Flow';
+import { GameTable } from './gameTable';
 import JoinGame from './joinGameFunction';
 import LeaveGame from './leaveGameFunction';
+import { Remix } from './remix';
+import { SendMessage } from './sendMessageFunction';
 import { StartGame } from './startGameFunction';
 import { StartRound } from './startRoundFunction';
 
@@ -20,47 +26,7 @@ export class RemixStack extends Stack {
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    const table = new Table(this, 'FiveDice', {
-      partitionKey: {
-        name: 'PK',
-        type: AttributeType.STRING,
-      },
-      timeToLiveAttribute: 'Ttl',
-      removalPolicy: RemovalPolicy.DESTROY,
-    });
-    table.addGlobalSecondaryIndex({
-      indexName: 'GSI1',
-      partitionKey: {
-        name: 'GSI1PK',
-        type: AttributeType.STRING,
-      },
-      sortKey: {
-        name: 'GSI1SK',
-        type: AttributeType.STRING,
-      },
-      projectionType: ProjectionType.INCLUDE,
-      nonKeyAttributes: ['CID', 'GID', 'Player', 'DiceCount'],
-    });
-    table.addGlobalSecondaryIndex({
-      indexName: 'GSI2',
-      partitionKey: {
-        name: 'GSI2PK',
-        type: AttributeType.STRING,
-      },
-      sortKey: {
-        name: 'GSI2SK',
-        type: AttributeType.STRING,
-      },
-      projectionType: ProjectionType.INCLUDE,
-      nonKeyAttributes: [
-        'Player',
-        'Characters',
-        'Players',
-        'NextPlayer',
-        'Dice',
-        'Bid',
-      ],
-    });
+    const table = new GameTable(this, 'FiveDice');
 
     const wsApi = new WebSocketApi(this, 'Websocket');
 
@@ -74,6 +40,9 @@ export class RemixStack extends Stack {
 
     const join = new JoinGame(this, 'Connect', { table, eventBus });
     const leave = new LeaveGame(this, 'Disconnect', { table, eventBus });
+    const sendMessageFunction = new SendMessage(this, 'SendMessage', {
+      wsApiStage: wsStage,
+    });
     const broadcast = new Broadcast(this, 'Broadcast', {
       table,
       wsApiStage: wsStage,
@@ -83,11 +52,6 @@ export class RemixStack extends Stack {
       eventBus,
     });
     const startRound = new StartRound(this, 'StartRound', {
-      table,
-      wsApiStage: wsStage,
-    });
-    const bid = new BidFunction(this, 'Bid', {
-      eventBus,
       table,
       wsApiStage: wsStage,
     });
@@ -107,33 +71,18 @@ export class RemixStack extends Stack {
         startGame
       ),
     });
-    const integrationArn = Stack.of(bid.stateMachine).formatArn({
-      account: 'states',
-      resource: 'action',
-      resourceName: 'StartExecution',
-      service: 'apigateway',
-    });
-    const bidIntegration = new CfnIntegration(this, 'BidIntegration', {
-      apiId: wsApi.apiId,
-      integrationType: 'AWS',
-      integrationUri: integrationArn,
-      integrationMethod: 'POST',
-      credentialsArn: bid.invokeRole.roleArn,
-      templateSelectionExpression: 'bid',
-      requestTemplates: {
-        bid: `#set($body = $input.path('$'))
-#set($dummy = $body.put("connectionId", $context.connectionId))
-{
-  "input": "$util.escapeJavaScript($input.json('$')).replaceAll(\"\\\\'\",\"'\")",
-  "stateMachineArn":"${bid.stateMachine.stateMachineArn}"
-}`,
-      },
-    });
 
-    new CfnRoute(this, 'BidRoute', {
-      apiId: wsApi.apiId,
-      routeKey: 'bid',
-      target: `integrations/${bidIntegration.ref}`,
+    new Bid(this, 'Bid', {
+      eventBus,
+      table,
+      sendMessageFunction,
+      wsApi,
+    });
+    new Challenge(this, 'Challenge', {
+      eventBus,
+      table,
+      sendMessageFunction,
+      wsApi,
     });
 
     new Rule(this, 'Events', {
@@ -151,31 +100,16 @@ export class RemixStack extends Stack {
       },
       targets: [new LambdaFunction(startRound)],
     });
+    const remix = new Remix(this, 'Remix', {
+      table,
+      wsStage: wsStage,
+    });
 
-    const staticBucket = new RemixStaticBucket(this, 'StaticBucket');
-    const ssrFunction = new RemixFunction(this, 'Server', {
-      serverBuildDirectory: 'server',
-      environment: {
-        TABLE_NAME: table.tableName,
-        WS_API: wsStage.url,
-      },
-    });
-    ssrFunction.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['dynamodb:GetItem', 'dynamodb:PutItem'],
-        resources: [table.tableArn],
-      })
-    );
-    const api = new RemixApi(this, 'Api', {
-      publicPath: '/_static/',
-      ssrFunction,
-      staticBucket,
-    });
     new CfnOutput(this, 'apiUrl', {
-      value: api.url || '',
+      value: remix.api.url || '',
     });
     new CfnOutput(this, 'assetsBucket', {
-      value: staticBucket.bucketName,
+      value: remix.staticBucket.bucketName,
     });
   }
 }

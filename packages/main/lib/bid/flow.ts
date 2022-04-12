@@ -22,31 +22,31 @@ import {
   TaskInput,
 } from 'aws-cdk-lib/aws-stepfunctions';
 import {
-  CallAwsService,
   EventBridgePutEvents,
   LambdaInvoke,
 } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
-import { UpdateBidTask } from './bid/updateBid';
+import { UpdateBidTask } from './updateBid';
+import { SendMessage } from '../sendMessageFunction';
 
 interface BidFunctionProps {
   table: ITable;
   eventBus: IEventBus;
-  wsApiStage: IWebSocketStage;
+  sendMessageFunction: SendMessage;
 }
 
-export class BidFunction extends Construct {
+export class Flow extends Construct {
   readonly stateMachine: IStateMachine;
   readonly invokeRole: IRole;
   constructor(
     scope: Construct,
     id: string,
-    { eventBus, table, wsApiStage }: BidFunctionProps
+    { eventBus, table, sendMessageFunction }: BidFunctionProps
   ) {
     super(scope, id);
 
     const bidFetchDataFunction = new NodejsFunction(this, 'GetBidDataFn', {
-      entry: require.resolve('../src/bid/getBidData'),
+      entry: require.resolve('../../src/bid/getBidData'),
       environment: {
         TABLE_NAME: table.tableName,
       },
@@ -60,29 +60,10 @@ export class BidFunction extends Construct {
       })
     );
     const validateBidFunction = new NodejsFunction(this, 'ValidateBidFn', {
-      entry: require.resolve('../src/bid/validateBid'),
+      entry: require.resolve('../../src/bid/validateBid'),
       tracing: Tracing.ACTIVE,
       logRetention: RetentionDays.ONE_DAY,
     });
-    const sendMessageFunction = new NodejsFunction(this, 'SendMessageFn', {
-      entry: require.resolve('../src/sendMessage'),
-      environment: {
-        WSAPI_URL: wsApiStage.callbackUrl,
-      },
-      tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
-    });
-    sendMessageFunction.addToRolePolicy(
-      new PolicyStatement({
-        actions: ['execute-api:ManageConnections'],
-        resources: [
-          Stack.of(this).formatArn({
-            service: 'execute-api',
-            resource: `${wsApiStage.api.apiId}/${wsApiStage.stageName}/POST/@connections/{connectionId}`,
-          }),
-        ],
-      })
-    );
 
     const invokeGetData = new LambdaInvoke(this, 'GetBidData', {
       lambdaFunction: bidFetchDataFunction,
@@ -178,6 +159,9 @@ export class BidFunction extends Construct {
         level: LogLevel.ALL,
       },
     });
+    this.stateMachine.grantStartExecution(
+      new ServicePrincipal('apigateway.amazonaws.com')
+    );
 
     this.invokeRole = new Role(this, 'BidInvoke', {
       assumedBy: new ServicePrincipal('apigateway.amazonaws.com'),
