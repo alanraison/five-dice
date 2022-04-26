@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Form, useActionData, useLoaderData, useTransition } from 'remix';
+import { redirect } from "@remix-run/node";
+import { Form, useActionData, useLoaderData, useTransition } from "@remix-run/react";
 import { AppData, DataFunctionArgs } from '@remix-run/server-runtime';
-import { redirect } from 'remix';
 import classNames from 'classnames';
 import { gameExists } from '~/api/game';
 import { createGame } from '~/api/create';

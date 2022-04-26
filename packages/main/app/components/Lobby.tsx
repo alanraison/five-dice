@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { Link, useParams } from 'remix';
+import { Link, useParams } from "@remix-run/react";
 import { exit, startGame } from '~/reducers/commands';
 import { useAppDispatch, useAppSelector } from '~/reducers/hooks';
 

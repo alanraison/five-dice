@@ -6,7 +6,7 @@ import {
 import classNames from 'classnames';
 import { useEffect } from 'react';
 import { useState } from 'react';
-import { Link, useLoaderData, useNavigate, useParams } from 'remix';
+import { Link, useLoaderData, useNavigate, useParams } from "@remix-run/react";
 import {
   GAME_STARTED,
   parseToEvent,

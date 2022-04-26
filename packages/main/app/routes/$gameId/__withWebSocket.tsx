@@ -1,4 +1,4 @@
-import { Outlet, useLoaderData } from 'remix';
+import { Outlet, useLoaderData } from "@remix-run/react";
 import { WebSocketProvider } from '~/websocket';
 
 export function loader() {

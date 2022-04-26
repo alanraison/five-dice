@@ -2,7 +2,8 @@ import { ActionFunction, LoaderFunction } from '@remix-run/server-runtime';
 import classNames from 'classnames';
 import { generateSlug } from 'random-word-slugs';
 import { useState } from 'react';
-import { Form, json, Link, redirect, useLoaderData } from 'remix';
+import { json, redirect } from "@remix-run/node";
+import { Form, Link, useLoaderData } from "@remix-run/react";
 import { gameExists } from '~/api/game';
 import CharacterCarousel, {
   allCharacters,
