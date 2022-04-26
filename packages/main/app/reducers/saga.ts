@@ -10,8 +10,8 @@ import {
   TakeEffect,
   takeEvery,
 } from 'redux-saga/effects';
-import { BID, EXIT, OPEN, OpenCommand, START } from './commands';
-import { parseToAction } from './events';
+import { BID, CHALLENGE, EXIT, OPEN, OpenCommand, START } from './commands';
+// import { parseToAction } from '../events';
 
 function createWebsocket(
   wsUrl: string,
@@ -52,7 +52,7 @@ function wsChannel(ws: WebSocket): EventChannel<any> | Error {
 function* processMessage(
   message: any
 ): Generator<ChannelTakeEffect<any> | PutEffect, void, any> {
-  const action = parseToAction(message);
+  const action = null; //parseToAction(message);
   if (action) {
     yield put(action);
   }
@@ -84,7 +84,7 @@ function* connect(
   )) as WebSocket;
   const chan = (yield call(wsChannel, ws)) as EventChannel<any>;
   yield takeEvery(chan, processMessage);
-  yield takeEvery([START, BID], sendMessage, ws, action.gameId);
+  yield takeEvery([START, BID, CHALLENGE], sendMessage, ws, action.gameId);
   yield take(EXIT);
   chan.close();
 }

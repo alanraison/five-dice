@@ -16,25 +16,27 @@ export async function action({
     });
   }
   const formData = await request.formData();
+  let gameId: string;
   switch (formData.get('type')) {
     case 'new':
       try {
-        const gameId = await createGame();
-        return redirect(`/${encodeURIComponent(gameId)}/join`);
+        gameId = await createGame();
+        break;
       } catch (err) {
         return err;
       }
     case 'join':
-      const gameId = formData.get('gameId')?.toString();
+      gameId = formData.get('gameId')?.toString() || '';
       if (!(await gameExists(gameId))) {
         return {
           gameId: 'Game not found',
         };
       }
-      return redirect(`/${encodeURIComponent(gameId || '')}`);
+      break;
     default:
       return {};
   }
+  return redirect(`/${encodeURIComponent(gameId)}`);
 }
 
 export default function Start() {
@@ -70,7 +72,9 @@ function StartGamePanel() {
           'hover:border-green-700',
           'hover:text-green-700'
         )}
-        disabled={transitionState === 'submitting'}
+        disabled={
+          transitionState === 'submitting' || transitionState === 'loading'
+        }
       >
         Start Game
       </button>
@@ -81,6 +85,7 @@ function StartGamePanel() {
 function JoinGamePanel() {
   const [gameCode, setGameCode] = useState<string>('');
   const errors = useActionData();
+  const { state: transitionState } = useTransition();
   return (
     <div
       className={classNames(
@@ -90,14 +95,19 @@ function JoinGamePanel() {
         'rounded-xl',
         'p-4',
         'my-2',
+        'group',
         {
           'border-red-500': errors?.gameId,
           'hover:border-green-700': !errors?.gameId,
+          'bg-yellow-500':
+            transitionState === 'submitting' || transitionState === 'loading',
         }
       )}
     >
       <Form method="post">
-        <p className="p-2 text-center">Got a Game Code?</p>
+        <p className="p-2 text-center group-hover:text-green-700">
+          Got a Game Code?
+        </p>
         <fieldset className="mx-auto text-center">
           <input type="hidden" name="type" value="join" />
           <input
@@ -120,7 +130,11 @@ function JoinGamePanel() {
             'hover:text-green-700',
             'disabled:text-gray-500'
           )}
-          disabled={!gameCode}
+          disabled={
+            !gameCode ||
+            transitionState === 'submitting' ||
+            transitionState === 'loading'
+          }
         >
           Join Game
         </button>

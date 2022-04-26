@@ -73,12 +73,12 @@ export async function handler(event: any) {
     isCorrectPlayer,
     bidder: {
       name: bidderName,
-      connectionId: bidder.PK.S,
+      connectionId: bidder.GSI2SK.S,
     },
     challenger: {
       name: challengerName,
-      connectionId: connectionId,
+      connectionId: challenger.GSI2SK.S,
     },
-    gameId: `GAME#${gameId}`,
+    players: game.Players.L?.map((item) => item.S),
   };
 }

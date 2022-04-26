@@ -1,22 +1,24 @@
-import * as events from './events';
+import * as events from '../events';
 import * as commands from './commands';
 import { Action } from 'redux';
 
-const MyTurnStarted = 'my-turn-started';
+export const MY_TURN_STARTED = 'my-turn-started';
+export const DISMISS_RESULT = 'dismiss-result';
 
-export interface StartMyTurnAction extends Action<typeof MyTurnStarted> {}
+export interface StartMyTurnAction extends Action<typeof MY_TURN_STARTED> {}
 export const startMyTurn: () => StartMyTurnAction = () => ({
-  type: MyTurnStarted,
+  type: MY_TURN_STARTED,
+});
+export interface DismissResultAction extends Action<typeof DISMISS_RESULT> {}
+export const dismissResult: () => DismissResultAction = () => ({
+  type: DISMISS_RESULT,
 });
 
 export type GameAction =
-  | events.GameStartedAction
-  | events.PlayerJoinedAction
-  | events.PlayerLeftAction
-  | events.RoundStartedAction
-  | events.BidIncreasedAction
   | commands.OpenCommand
   | commands.ExitCommand
   | commands.StartGameCommand
   | commands.BidCommand
-  | StartMyTurnAction;
+  | commands.ChallengeCommand
+  | StartMyTurnAction
+  | DismissResultAction;

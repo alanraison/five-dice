@@ -37,11 +37,11 @@ export const calzaChallengeAction = bidAction.extend({
 
 export type CalzaChallengeAction = z.infer<typeof calzaChallengeAction>;
 
-export const allBidActions = z.discriminatedUnion('action', [
-  increaseBidAction,
-  dudoChallengeAction,
-  calzaChallengeAction,
-]);
+// export const allBidActions = z.discriminatedUnion('action', [
+//   increaseBidAction,
+//   dudoChallengeAction,
+//   calzaChallengeAction,
+// ]);
 
 export type Dice = {
   [player: string]: Array<number>;

@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .clip-full-x {
+    clip-path: inset(0 100% 0 0);
+  }
+  
+  .clip-none {
+    clip-path: inset(0 0 0 0);
+  }
+}

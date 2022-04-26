@@ -40,9 +40,11 @@ export class GameTable extends Table {
         'Player',
         'Characters',
         'Players',
+        'Bidder',
         'NextPlayer',
         'Dice',
         'Bid',
+        'Status',
       ],
     });
   }

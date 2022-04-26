@@ -1,8 +1,10 @@
 import { startMyTurn } from '~/reducers/actions';
 import { useAppDispatch, useAppSelector } from '~/reducers/hooks';
+import { Challenge } from './Challenge';
 import { Bid } from './Bid';
 import { Die } from './Die';
 import { Players } from './Players';
+import { ExitGame } from './ExitGame';
 
 export function Round() {
   const round = useAppSelector((state) => state.round);
@@ -13,6 +15,7 @@ export function Round() {
   }
   return (
     <div>
+      <ExitGame />
       <Players />
       <div id="dice">
         <p>Your Dice:</p>
@@ -23,6 +26,7 @@ export function Round() {
         </ul>
       </div>
       <Bid />
+      <Challenge />
     </div>
   );
 }

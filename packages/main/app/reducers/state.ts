@@ -1,6 +1,6 @@
 import { Action } from 'redux';
 import { GameAction } from './actions';
-import { GAME_STARTED } from './events';
+import { GAME_STARTED } from '../events';
 
 export const PendingState = 'pending';
 export const InProgressState = 'in-progress';

@@ -96,7 +96,11 @@ export class RemixStack extends Stack {
       eventBus,
       eventPattern: {
         source: ['five-dice-wsapi'],
-        detailType: ['game-started'],
+        detailType: [
+          'game-started',
+          'challenge-successful',
+          'challenge-unsuccessful',
+        ],
       },
       targets: [new LambdaFunction(startRound)],
     });

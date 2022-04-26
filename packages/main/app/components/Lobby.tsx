@@ -24,6 +24,9 @@ export function Lobby() {
       <div className="p-2">
         Game Code:{' '}
         <input className="bg-green-300 p-2 w-20" value={gameId} readOnly />
+        <a href="#">
+          <span className="material-icons">content_copy</span>
+        </a>
       </div>
       <div className="bg-white rounded-3xl border-black border-8 p-8">
         <ul>
@@ -61,7 +64,7 @@ export function Lobby() {
             'border-black',
             'rounded-xl'
           )}
-          onClick={() => dispatch(startGame())}
+          // onClick={() => dispatch(startGame())}
         >
           Start Game
         </button>

@@ -1,7 +1,5 @@
-import { IWebSocketStage } from '@aws-cdk/aws-apigatewayv2-alpha';
-import { Resource } from 'aws-cdk-lib';
 import { ITable } from 'aws-cdk-lib/aws-dynamodb';
-import { EventBus, IEventBus } from 'aws-cdk-lib/aws-events';
+import { IEventBus } from 'aws-cdk-lib/aws-events';
 import {
   IRole,
   PolicyDocument,
@@ -28,6 +26,7 @@ import {
 } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
 import { SendMessage } from '../sendMessageFunction';
+import { UpdateDice } from './UpdateDice';
 
 interface ChallengeFlowProps {
   table: ITable;
@@ -40,6 +39,7 @@ export class Flow extends Construct {
   readonly invokeRole: IRole;
   private readonly eventBus: IEventBus;
   private readonly sendMessageFunction: SendMessage;
+  private readonly table: ITable;
   constructor(
     scope: Construct,
     id: string,
@@ -49,6 +49,7 @@ export class Flow extends Construct {
 
     this.eventBus = eventBus;
     this.sendMessageFunction = sendMessageFunction;
+    this.table = table;
 
     this.stateMachine = this.createStateMachine(
       this.getData(table).next(
@@ -56,7 +57,7 @@ export class Flow extends Construct {
           this.checkChallengeSuccess({
             onSuccess: this.challengeSuccess(),
             onFailure: this.challengeFailed(),
-          })
+          }).next(this.notifyChallengeResult())
         )
       )
     );
@@ -109,7 +110,7 @@ export class Flow extends Construct {
         'isCorrectPlayer.$': '$.Payload.isCorrectPlayer',
         'bidder.$': '$.Payload.bidder',
         'challenger.$': '$.Payload.challenger',
-        'gameId.$': '$.Payload.gameId',
+        'players.$': '$.Payload.players',
       },
     });
   }
@@ -163,33 +164,65 @@ export class Flow extends Construct {
     const challengeSuccessful = new Choice(this, 'ChallengeSuccessful');
     challengeSuccessful.when(challengeSuccessfulCheck, onSuccess);
     challengeSuccessful.otherwise(onFailure);
-    return validate.next(challengeSuccessful);
+    return validate.next(
+      challengeSuccessful.afterwards({ includeErrorHandlers: false })
+    );
   }
 
   private challengeSuccess(): IChainable {
-    return new EventBridgePutEvents(this, 'ChallengeSuccessfulEvent', {
-      entries: [
-        {
-          eventBus: this.eventBus,
-          source: 'five-dice-wsapi',
-          detailType: 'challenge-successful',
-          detail: TaskInput.fromObject({
-            gameId: JsonPath.stringAt('$.gameId'),
-          }),
-        },
-      ],
-    });
+    return new UpdateDice(this, 'UpdateDiceBidderLoses', {
+      table: this.table,
+      connectionId: JsonPath.stringAt('$.data.bidder.connectionId'),
+      resultPath: '$.update',
+      resultSelector: {
+        loser: 'bidder',
+      },
+    }).next(
+      new EventBridgePutEvents(this, 'ChallengeSuccessfulEvent', {
+        entries: [
+          {
+            eventBus: this.eventBus,
+            source: 'five-dice-wsapi',
+            detailType: 'challenge-result',
+            detail: TaskInput.fromObject({
+              gameId: JsonPath.stringAt('$.gameId'),
+              counts: JsonPath.objectAt('$.validate.counts'),
+              result: JsonPath.stringAt(
+                "States.Format('{} loses a die', $.data.bidder.name)"
+              ),
+              bid: JsonPath.objectAt('$.data.bid'),
+            }),
+          },
+        ],
+      })
+    );
   }
 
   private challengeFailed(): IChainable {
-    return new EventBridgePutEvents(this, 'ChallengeFailedEvent', {
+    return new UpdateDice(this, 'UpdateDiceChallengerLoses', {
+      table: this.table,
+      connectionId: JsonPath.stringAt('$.data.challenger.connectionId'),
+      resultPath: '$.update',
+      resultSelector: {
+        loser: 'challenger',
+      },
+    });
+  }
+
+  private notifyChallengeResult(): IChainable {
+    return new EventBridgePutEvents(this, 'ChallengeCompletedEvent', {
       entries: [
         {
           eventBus: this.eventBus,
           source: 'five-dice-wsapi',
-          detailType: 'challenge-unsuccessful',
+          detailType: 'challenge-result',
           detail: TaskInput.fromObject({
             gameId: JsonPath.stringAt('$.gameId'),
+            counts: JsonPath.objectAt('$.validate.counts'),
+            loser: JsonPath.stringAt('$.update.loser'),
+            bid: JsonPath.objectAt('$.data.bid'),
+            bidder: '',
+            challenger: '',
           }),
         },
       ],

@@ -1,9 +1,11 @@
 import {
   AttributeValue,
   DynamoDBClient,
+  QueryCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import getConnectionsForGameFactory from '../getConnectionsForGame';
+import logger from '../logger';
+import { Status } from '../status';
 import { DiceData } from './types';
 
 if (!process.env.TABLE_NAME) {
@@ -12,7 +14,42 @@ if (!process.env.TABLE_NAME) {
 const table = process.env.TABLE_NAME;
 const ddb = new DynamoDBClient({});
 
-export const getConnectionsForGame = getConnectionsForGameFactory(ddb, table);
+export async function getConnectionsForGame(gameId: string) {
+  const result = await ddb.send(
+    new QueryCommand({
+      TableName: table,
+      IndexName: 'GSI1',
+      KeyConditionExpression: '#pk = :gameId AND begins_with(#sk, :conn)',
+      ExpressionAttributeNames: {
+        '#pk': 'GSI1PK',
+        '#sk': 'GSI1SK',
+        '#cid': 'CID',
+        '#diceCount': 'DiceCount',
+        '#player': 'Player',
+      },
+      ExpressionAttributeValues: {
+        ':gameId': { S: gameId },
+        ':conn': { S: 'CONN#' },
+        ':zero': { N: '0' },
+      },
+      ProjectionExpression: '#cid,#diceCount,#player',
+      FilterExpression: '#diceCount > :zero',
+    })
+  );
+  logger.info(result);
+  return result.Items?.map(({ CID, DiceCount, Player }) => {
+    if (!(CID.S && Player.S)) {
+      throw Error(
+        `Invalid Player data: connection id ${CID.S}, Player Name ${Player.S}`
+      );
+    }
+    return {
+      CID: CID.S,
+      DiceCount: Number.parseInt(DiceCount.N || '0', 10),
+      Player: Player.S,
+    };
+  });
+}
 
 /**
  *
@@ -42,35 +79,26 @@ export async function saveDice(
         Key: {
           PK: { S: `GAME#${gameId}` },
         },
-        UpdateExpression: 'SET #dice = :dice',
+        UpdateExpression:
+          'SET #dice = :dice, #bid = :bid, #status = :initialBid',
         ExpressionAttributeNames: {
           '#dice': 'Dice',
+          '#bid': 'Bid',
+          '#status': 'Status',
         },
         ExpressionAttributeValues: {
           ':dice': { M: allDice },
+          ':bid': {
+            M: {
+              q: { N: '0' },
+              v: { N: '7' },
+            },
+          },
+          ':initialBid': { S: Status.INITIAL_BID },
         },
         ReturnValues: 'ALL_NEW',
       })
     ),
-    // Object.entries(connections.byConnection).map(([conn, dice]) =>
-    //   ddb.send(
-    //     new UpdateItemCommand({
-    //       TableName: table,
-    //       Key: {
-    //         PK: { S: `CONN#${conn}` },
-    //       },
-    //       UpdateExpression: 'SET #dice = :dice',
-    //       ExpressionAttributeNames: {
-    //         '#dice': 'Dice',
-    //       },
-    //       ExpressionAttributeValues: {
-    //         ':dice': {
-    //           L: dice.map((d) => ({ N: d.toString() })),
-    //         },
-    //       },
-    //     })
-    //   )
-    // ),
   ]);
   const failed = updates.filter(
     (promise) => promise.status === 'rejected'

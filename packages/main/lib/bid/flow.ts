@@ -73,7 +73,6 @@ export class Flow extends Construct {
         'currentBid.$': '$.Payload.currentBid',
         'bidder.$': '$.Payload.bidder',
         'nextPlayer.$': '$.Payload.nextPlayer',
-        'gameKey.$': '$.Payload.gameKey',
       },
     });
     const notCurrentBidder = Condition.booleanEquals(

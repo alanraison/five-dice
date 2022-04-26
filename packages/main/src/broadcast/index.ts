@@ -3,9 +3,8 @@ import {
   PostToConnectionCommand,
 } from '@aws-sdk/client-apigatewaymanagementapi';
 import { EventBridgeEvent } from 'aws-lambda';
-import { getConnectionsForGame } from './dao';
 import logger from '../logger';
-import { Attributes } from '../getConnectionsForGame';
+import { getConnectionsForGame } from './dao';
 
 if (!process.env.WSAPI_URL) {
   throw new Error('Initialisation Error: WSAPI_URL not defined');
@@ -22,9 +21,7 @@ const apiGwClient = new ApiGatewayManagementApiClient({
 export async function handler(event: EventBridgeEvent<string, GameEvent>) {
   try {
     const connections =
-      (await getConnectionsForGame(event.detail.gameId, [Attributes.cid]).then(
-        (result) => result.Items?.map((i) => i.CID?.S)
-      )) || [];
+      (await getConnectionsForGame(event.detail.gameId)) || [];
     const results = await Promise.allSettled(
       connections.map((c) =>
         apiGwClient.send(

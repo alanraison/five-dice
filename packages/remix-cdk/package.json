@@ -16,9 +16,11 @@
     "typescript": "~3.9.7"
   },
   "dependencies": {
-    "@aws-cdk/aws-apigatewayv2-alpha": "^2.17.0-alpha.0",
-    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.17.0-alpha.0",
-    "aws-cdk-lib": "^2.17.0",
+    "@aws-cdk/aws-apigatewayv2-alpha": "^2.21.1-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "^2.21.1-alpha.0",
+    "aws-cdk-lib": "^2.21.1"
+  },
+  "peerDependencies": {
     "constructs": "^10.0.0"
   }
 }

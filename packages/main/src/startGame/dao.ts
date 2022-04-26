@@ -5,6 +5,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { randomInt } from 'crypto';
 import logger from '../logger';
+import { Status } from '../status';
 import { Player } from '../types';
 
 if (!process.env.TABLE_NAME) {
@@ -74,8 +75,8 @@ export async function updateGame(gameId: string, allPlayers: Array<Player>) {
         '#nextPlayer': 'NextPlayer',
       },
       ExpressionAttributeValues: {
-        ':inprogress': { S: 'InProgress' },
-        ':pending': { S: 'Pending' },
+        ':inprogress': { S: Status.IN_PROGRESS },
+        ':pending': { S: Status.PENDING },
         ':min': { N: '2' },
         ':max': { N: '6' },
         ':nextPlayer': { S: allPlayers[randomPlayer].name },

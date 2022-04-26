@@ -1,6 +1,12 @@
 {
   // "extends": "../../tsconfig.json",
-  "include": ["remix.env.d.ts", "**/*.ts", "**/*.tsx", "remix.config.cjs"],
+  "include": [
+    "remix.env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "remix.config.cjs",
+    "app/routes/$gameId/join/indextsx"
+  ],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2019"],
     "esModuleInterop": true,

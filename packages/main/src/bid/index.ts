@@ -1,7 +1,7 @@
 import logger from '../logger';
 import { getData, saveBid } from './dao';
 import {
-  allBidActions,
+  // allBidActions,
   Bid,
   BidderType,
   Dice,
@@ -18,7 +18,7 @@ type WebSocketBidEvent = {
 export async function handler(event: WebSocketBidEvent) {
   logger.debug(event);
   const body = JSON.parse(event.body);
-  const bid = allBidActions.parse(body);
+  const bid = { action: 'increase', gameId: 'abcde', q: 1, v: 1 } as const; //allBidActions.parse(body);
   // if the game and player match, accept bid, otherwise silently drop (unless calza?)
   const gameData = await getData(bid.gameId, event.requestContext.connectionId);
   switch (bid.action) {
@@ -34,6 +34,7 @@ export async function handler(event: WebSocketBidEvent) {
       );
       //notifyNewBid(bid, gameData.nextPlayer);
       break;
+    /*
     case 'dudo':
       // if the type is "dudo", check result and notifiy players; set dicecounts and nextPlayer
       handleDudo(
@@ -47,6 +48,7 @@ export async function handler(event: WebSocketBidEvent) {
       // if the type is "calza"... leave for now
       handleCalza();
       break;
+      */
   }
   return {
     statusCode: 200,

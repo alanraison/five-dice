@@ -4,6 +4,7 @@ export const OPEN = 'open';
 export const EXIT = 'exit';
 export const START = 'start';
 export const BID = 'bid';
+export const CHALLENGE = 'challenge';
 export enum all {
   OPEN,
   EXIT,
@@ -43,10 +44,10 @@ export function exit(): ExitCommand {
 
 export interface StartGameCommand extends Action<typeof START> {}
 
-export function startGame(): StartGameCommand {
-  return {
+export function startGame(): string {
+  return JSON.stringify({
     type: START,
-  };
+  });
 }
 
 export interface BidCommand extends Action<typeof BID> {
@@ -59,5 +60,13 @@ export function bid(q: number, v: number): BidCommand {
     type: BID,
     q,
     v,
+  };
+}
+
+export interface ChallengeCommand extends Action<typeof CHALLENGE> {}
+
+export function challenge(): ChallengeCommand {
+  return {
+    type: CHALLENGE,
   };
 }

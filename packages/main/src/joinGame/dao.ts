@@ -6,6 +6,7 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { DateTime } from 'luxon';
 import logger from '../logger';
+import { Status } from '../status';
 import { Player } from '../types';
 
 if (!process.env.TABLE_NAME) {
@@ -55,7 +56,7 @@ export default async function joinGameDAO(
         },
         ExpressionAttributeValues: {
           ':maxItems': { N: '6' },
-          ':pending': { S: 'Pending' },
+          ':pending': { S: Status.PENDING },
           ':character': { S: player.character },
         },
         ConditionExpression:

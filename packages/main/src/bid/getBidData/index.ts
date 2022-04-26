@@ -29,7 +29,6 @@ export async function handler({
         '#player': 'Player',
         '#players': 'Players',
         '#nextPlayer': 'NextPlayer',
-        // '#dice': 'Dice',
         '#bid': 'Bid',
       },
       ExpressionAttributeValues: {
@@ -68,25 +67,12 @@ export async function handler({
     q: Number.parseInt(q.N || '0', 10),
     v: Number.parseInt(v.N || '7', 10),
   };
-  // const diceAttrs = game.Dice.M;
-  // if (!diceAttrs) {
-  //   throw new Error('Dice not found');
-  // }
-  // const dice = Object.entries(diceAttrs).reduce(
-  //   (acc, [player, dice]) => ({
-  //     ...acc,
-  //     [player]: dice.L?.map((d) => parseInt(d.N || '0', 10)),
-  //   }),
-  //   {}
-  // );
   const currentIndex = players.indexOf(nextPlayer);
   const newNextPlayer = players[(currentIndex + 1) % players.length];
   return {
     isCurrentBidder: player === nextPlayer,
     currentBid,
-    // dice,
     bidder: player,
     nextPlayer: newNextPlayer,
-    gameKey: `GAME#${gameId}`,
   };
 }

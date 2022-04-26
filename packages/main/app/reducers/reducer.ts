@@ -1,6 +1,6 @@
 import { Player } from '~/types';
 import { GameAction } from './actions';
-import { PLAYER_JOINED, PLAYER_LEFT } from './events';
+import { PLAYER_JOINED, PLAYER_LEFT } from '../events';
 import { EXIT } from './commands';
 
 export function players(
@@ -16,7 +16,7 @@ export function players(
         ...action.allPlayers.map((name) => ({
           name,
           character:
-            (state || []).find((player) => player.name === name)?.character ||
+            state.find((player) => player.name === name)?.character ||
             'unknown',
         })),
       ];

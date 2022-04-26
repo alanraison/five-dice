@@ -5,6 +5,7 @@ import {
   DynamoUpdateItem,
 } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Construct } from 'constructs';
+import { Status } from '../../src/status';
 
 interface UpdateBidTaskProps {
   table: ITable;
@@ -16,15 +17,16 @@ export class UpdateBidTask extends DynamoUpdateItem {
       table,
       key: {
         PK: DynamoAttributeValue.fromString(
-          JsonPath.stringAt('$.data.gameKey')
+          JsonPath.stringAt("States.Format('GAME#{}', $.gameId)")
         ),
       },
       updateExpression:
-        'Set #bid = :bid, #nextPlayer = :nextPlayer, #bidder = :bidder',
+        'Set #bid = :bid, #nextPlayer = :nextPlayer, #bidder = :bidder, #status = :bidding',
       expressionAttributeNames: {
         '#bid': 'Bid',
         '#nextPlayer': 'NextPlayer',
         '#bidder': 'Bidder',
+        '#status': 'Status',
       },
       expressionAttributeValues: {
         ':bid': DynamoAttributeValue.fromMap({
@@ -41,6 +43,7 @@ export class UpdateBidTask extends DynamoUpdateItem {
         ':bidder': DynamoAttributeValue.fromString(
           JsonPath.stringAt('$.data.bidder')
         ),
+        ':bidding': DynamoAttributeValue.fromString(Status.BIDDING),
       },
       resultPath: JsonPath.DISCARD,
     });

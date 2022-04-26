@@ -1,13 +1,12 @@
-import { EventBridgeEvent } from 'aws-lambda';
 import {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } from '@aws-sdk/client-apigatewaymanagementapi';
+import { EventBridgeEvent } from 'aws-lambda';
 import { randomInt } from 'crypto';
-import { getConnectionsForGame, saveDice } from './dao';
-import { Attributes } from '../getConnectionsForGame';
-import { ConnectionData, DiceData } from './types';
 import logger from '../logger';
+import { getConnectionsForGame, saveDice } from './dao';
+import { ConnectionData, DiceData } from './types';
 
 if (!process.env.WSAPI_URL) {
   throw new Error('Initialisation error: WSAPI_URL not set');
@@ -59,25 +58,7 @@ export async function handler(
 ) {
   const gameId = event.detail.gameId;
   // get connections for game
-  const connections: Array<ConnectionData> =
-    (await getConnectionsForGame(gameId, [
-      Attributes.cid,
-      Attributes.diceCount,
-      Attributes.player,
-    ]).then((result) =>
-      result.Items?.map(({ CID, DiceCount, Player }) => {
-        if (!(CID.S && Player.S)) {
-          throw Error(
-            `Invalid Player data: connection id ${CID.S}, Player Name ${Player.S}`
-          );
-        }
-        return {
-          CID: CID.S,
-          DiceCount: parseInt(DiceCount.N || '0', 10),
-          Player: Player.S,
-        };
-      })
-    )) || [];
+  const connections = (await getConnectionsForGame(gameId)) || [];
   // for each connection
   logger.debug(connections);
   const diceByConnection = diceByConnectionAndPlayer(connections);
