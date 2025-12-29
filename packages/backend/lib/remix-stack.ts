@@ -1,0 +1,100 @@
+import { WebSocketApi, WebSocketStage } from 'aws-cdk-lib/aws-apigatewayv2';
+import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { Stack } from 'aws-cdk-lib';
+import { EventBus, Rule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+import { Construct } from 'constructs';
+import { Bid } from './bid.js';
+import Broadcast from './broadcastFunction.js';
+import { Challenge } from './challenge.js';
+import { GameTable } from './gameTable.js';
+import JoinGame from './joinGameFunction.js';
+import LeaveGame from './leaveGameFunction.js';
+import { SendMessage } from './sendMessageFunction.js';
+import { StartGame } from './startGameFunction.js';
+import { StartRound } from './startRoundFunction.js';
+
+export class RemixStack extends Stack {
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+
+    const table = new GameTable(this, 'FiveDice');
+
+    const wsApi = new WebSocketApi(this, 'Websocket');
+
+    const wsStage = new WebSocketStage(this, 'default', {
+      stageName: 'default',
+      webSocketApi: wsApi,
+      autoDeploy: true,
+    });
+
+    const eventBus = new EventBus(this, 'GameEvents');
+
+    const join = new JoinGame(this, 'Connect', { table, eventBus });
+    const leave = new LeaveGame(this, 'Disconnect', { table, eventBus });
+    const sendMessageFunction = new SendMessage(this, 'SendMessage', {
+      wsApiStage: wsStage,
+    });
+    const broadcast = new Broadcast(this, 'Broadcast', {
+      table,
+      wsApiStage: wsStage,
+    });
+    const startGame = new StartGame(this, 'StartGame', {
+      table,
+      eventBus,
+    });
+    const startRound = new StartRound(this, 'StartRound', {
+      table,
+      wsApiStage: wsStage,
+    });
+
+    wsApi.addRoute('$connect', {
+      integration: new WebSocketLambdaIntegration('ConnectIntegration', join),
+    });
+    wsApi.addRoute('$disconnect', {
+      integration: new WebSocketLambdaIntegration(
+        'DisconnectIntegration',
+        leave,
+      ),
+    });
+    wsApi.addRoute('start', {
+      integration: new WebSocketLambdaIntegration(
+        'StartGameIntegration',
+        startGame,
+      ),
+    });
+
+    new Bid(this, 'Bid', {
+      eventBus,
+      table,
+      sendMessageFunction,
+      wsApi,
+    });
+    new Challenge(this, 'Challenge', {
+      eventBus,
+      table,
+      sendMessageFunction,
+      wsApi,
+    });
+
+    new Rule(this, 'Events', {
+      eventBus,
+      eventPattern: {
+        source: ['five-dice-wsapi'],
+      },
+      targets: [new LambdaFunction(broadcast)],
+    });
+    new Rule(this, 'StartRoundEvent', {
+      eventBus,
+      eventPattern: {
+        source: ['five-dice-wsapi'],
+        detailType: [
+          'game-started',
+          'challenge-successful',
+          'challenge-unsuccessful',
+        ],
+      },
+      targets: [new LambdaFunction(startRound)],
+    });
+  }
+}

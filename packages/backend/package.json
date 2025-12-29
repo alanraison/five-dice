@@ -1,0 +1,46 @@
+{
+  "private": true,
+  "name": "@five-dice/backend",
+  "description": "",
+  "license": "",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "remix build",
+    "build:css": "tailwindcss -i ./app/main.css -o ./app/tailwind.css",
+    "dev": "concurrently \"npm run dev:css\" \"node -r dotenv/config node_modules/.bin/remix dev\"",
+    "dev:css": "tailwindcss -o ./app/tailwind.css --watch",
+    "start": "remix-serve build",
+    "test": "jest",
+    "sync": "aws s3 sync --delete public/_static s3://app-remixstaticbucket926e5649-kalkjr05rtel --exclude .DS_Store"
+  },
+  "dependencies": {
+    "@aws-sdk/client-apigatewaymanagementapi": "^3.958.0",
+    "@aws-sdk/client-dynamodb": "^3.958.0",
+    "@aws-sdk/client-eventbridge": "^3.958.0",
+    "dotenv": "^17.2.3",
+    "luxon": "^3.7.2",
+    "pino": "^10.1.0",
+    "random-word-slugs": "^0.1.7",
+    "zod": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.159",
+    "@types/jest": "^30.0.0",
+    "@types/luxon": "^2.0.7",
+    "aws-cdk": "^2.1100.1",
+    "aws-cdk-lib": "^2.233.0",
+    "concurrently": "^9.2.1",
+    "constructs": "^10.4.4",
+    "jest": "^30.2.0",
+    "jest-websocket-mock": "^2.3.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "sideEffects": false
+}

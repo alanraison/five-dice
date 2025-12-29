@@ -2,7 +2,8 @@
   "name": "five-dice",
   "private": true,
   "workspaces": [
-    "packages/*"
+    "packages/backend",
+    "packages/frontend"
   ],
   "type": "module",
   "devDependencies": {

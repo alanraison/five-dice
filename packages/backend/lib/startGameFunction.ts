@@ -1,0 +1,55 @@
+import { join } from 'node:path';
+import { type ITable } from 'aws-cdk-lib/aws-dynamodb';
+import { type IEventBus } from 'aws-cdk-lib/aws-events';
+import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
+import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
+import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { Construct } from 'constructs';
+
+export interface StartGameProps {
+  table: ITable;
+  eventBus: IEventBus;
+}
+
+export class StartGame extends NodejsFunction {
+  constructor(
+    scope: Construct,
+    id: string,
+    { table, eventBus }: StartGameProps,
+  ) {
+    super(scope, id, {
+      entry: join(import.meta.dirname, '../src/startGame/index.ts'),
+      handler: 'handler',
+      runtime: Runtime.NODEJS_24_X,
+      environment: {
+        TABLE_NAME: table.tableName,
+        EVENTBUS_NAME: eventBus.eventBusName,
+      },
+      tracing: Tracing.ACTIVE,
+      logRetention: RetentionDays.ONE_DAY,
+      bundling: {
+        format: OutputFormat.ESM,
+        target: 'node24',
+      },
+    });
+    this.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:GetItem', 'dynamodb:UpdateItem'],
+        resources: [table.tableArn],
+      }),
+    );
+    this.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['dynamodb:Query'],
+        resources: [`${table.tableArn}/index/GSI2`],
+      }),
+    );
+    this.addToRolePolicy(
+      new PolicyStatement({
+        actions: ['events:PutEvents'],
+        resources: [eventBus.eventBusArn],
+      }),
+    );
+  }
+}
