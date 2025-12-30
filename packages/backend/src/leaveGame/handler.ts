@@ -1,4 +1,3 @@
-/* eslint-disable import/prefer-default-export */
 import {
   DeleteItemCommand,
   DynamoDBClient,
@@ -8,7 +7,7 @@ import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
-import logger from '../logger';
+import logger from '../logger.js';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation Error: no TABLE_NAME set');

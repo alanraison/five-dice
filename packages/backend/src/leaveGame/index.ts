@@ -1,2 +1,1 @@
-/* eslint-disable import/prefer-default-export */
-export { handler } from './handler';
+export { handler } from './handler.js';
