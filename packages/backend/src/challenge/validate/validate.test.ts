@@ -1,4 +1,5 @@
-import { handler } from '.';
+import { describe, expect, it } from 'vitest';
+import { handler } from './index.js';
 
 describe('challenge validator', () => {
   it('should return success if the bid is too high', async () => {

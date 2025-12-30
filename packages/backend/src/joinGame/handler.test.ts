@@ -1,10 +1,10 @@
-import pino from 'pino';
+import { describe, expect, it, vi } from 'vitest';
 import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
 import { handler } from './handler.js';
 
-jest.mock('./dao');
-jest.mock('./event');
-jest.mock('../logger', () => pino({ enabled: false }));
+vi.mock('./dao.js');
+vi.mock('./event.js');
+vi.mock('../logger.js');
 
 describe('joinGameHandler', () => {
   it("should return an error if the request doesn't contain a gameId parameter", async () => {
@@ -53,7 +53,7 @@ describe('joinGameHandler', () => {
     });
   });
   it('should register the player with the game', async () => {
-    (joinGame as jest.Mock).mockReturnValue({
+    vi.mocked(joinGame).mockResolvedValue({
       players: [
         {
           name: 'alan',
@@ -78,7 +78,7 @@ describe('joinGameHandler', () => {
     });
   });
   it('should return an error if the DAO errors', async () => {
-    (joinGame as jest.Mock).mockImplementation(() => {
+    vi.mocked(joinGame).mockImplementation(() => {
       throw new Error('Some Error');
     });
     await expect(
@@ -98,12 +98,12 @@ describe('joinGameHandler', () => {
     });
   });
   it('should return an error if the join was unsuccessful', async () => {
-    (joinGame as jest.Mock).mockImplementation(() => {
+    vi.mocked(joinGame).mockImplementation(() => {
       const response = new UnsuccessfulJoinGameResponse();
       Object.assign(response, {
         reason: 'Mock reason',
       });
-      return response;
+      return Promise.resolve(response);
     });
     const result = await handler({
       queryStringParameters: {

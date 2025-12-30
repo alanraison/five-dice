@@ -1,12 +1,12 @@
-import logger from '../logger';
-import { getData, saveBid } from './dao';
+import logger from '../logger.js';
+import { getData, saveBid } from './dao.js';
 import {
   // allBidActions,
   Bid,
   BidderType,
   Dice,
   IncreaseBidAction,
-} from './types';
+} from './types.js';
 
 type WebSocketBidEvent = {
   requestContext: {
@@ -32,7 +32,7 @@ export async function handler(event: WebSocketBidEvent) {
         gameData.bidder,
         gameData.nextPlayer
       );
-      //notifyNewBid(bid, gameData.nextPlayer);
+      notifyNewBid(bid, gameData.nextPlayer);
       break;
     /*
     case 'dudo':

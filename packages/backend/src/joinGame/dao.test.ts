@@ -1,12 +1,13 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import pino from 'pino';
-import joinGame, {
-  SuccessfulJoinGameResponse,
-  UnsuccessfulJoinGameResponse,
-} from './dao.js';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  DynamoDBClient,
+  PutItemCommand,
+  UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
+import joinGame, { type UnsuccessfulJoinGameResponse } from './dao.js';
+import { mockClient } from 'aws-sdk-client-mock';
 
-jest.mock('@aws-sdk/client-dynamodb');
-jest.mock('../logger', () => pino({ enabled: false }));
+vi.mock('../logger.js');
 
 class MockConditionalCheckFailedException extends Error {
   name: string = 'ConditionalCheckFailedException';
@@ -17,68 +18,57 @@ class MockConditionalCheckFailedException extends Error {
 }
 
 describe('JoinGameDAO', () => {
-  const mockDynamoDBClient = new DynamoDBClient({});
+  const mockDynamoDBClient = mockClient(DynamoDBClient);
 
-  it('should return an unsuccessful response if the game does not exist', async () => {
-    (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
-      new MockConditionalCheckFailedException()
-    );
+  beforeEach(() => {
+    mockDynamoDBClient.reset();
+    vi.resetAllMocks();
+  });
+
+  it('should return an unsuccessful response if the game does not exist or is not joinable', async () => {
+    mockDynamoDBClient
+      .on(UpdateItemCommand)
+      .rejects(new MockConditionalCheckFailedException());
     const response = await joinGame(
       'game1',
       { name: 'player1', character: 'character' },
-      'conn1'
+      'conn1',
     );
     expect(response).toMatchObject<UnsuccessfulJoinGameResponse>({
       reason: 'Game not joinable',
     });
   });
-  it('should return an unsuccessful response if the game is full', async () => {
-    (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
-      new MockConditionalCheckFailedException()
-    );
-    const response = await joinGame(
-      'game1',
-      { name: 'player1', character: 'character' },
-      'conn1'
-    );
-    expect(response).toMatchObject<UnsuccessfulJoinGameResponse>({
-      reason: 'Game not joinable',
-    });
-  });
-  it('should return an error if the database write fails', async () => {
-    (mockDynamoDBClient.send as jest.Mock).mockRejectedValue(
-      new Error('Some Error')
-    );
-    expect(() =>
+
+  it('should return an error if the database write fails with unexpected error', async () => {
+    mockDynamoDBClient.on(UpdateItemCommand).rejects(new Error('Some Error'));
+    await expect(() =>
       joinGame(
         'game2',
         {
           name: 'player2',
           character: 'character',
         },
-        'conn2'
-      )
-    ).toThrow('Some Error');
+        'conn2',
+      ),
+    ).rejects.toThrow('Some Error');
   });
+
   it('should return the current player list if the player joins successfully', async () => {
-    (mockDynamoDBClient.send as jest.Mock).mockResolvedValueOnce({
+    mockDynamoDBClient.on(UpdateItemCommand).resolves({
       Attributes: {
-        PlayerNames: {
-          SS: ['player1', 'player2', 'player3'],
+        Characters: {
+          M: {
+            player1: { S: 'c' },
+            player2: { S: 'd' },
+            player3: { S: 'e' },
+          },
         },
       },
-    });
-    (mockDynamoDBClient.send as jest.Mock).mockResolvedValueOnce({});
-    (mockDynamoDBClient.send as jest.Mock).mockResolvedValueOnce({
-      Items: [
-        { Player: { S: 'player1' }, Character: { S: 'c' } },
-        { Player: { S: 'player2' }, Character: { S: 'd' } },
-        { Player: { S: 'player3' }, Character: { S: 'e' } },
-      ],
-    });
+    }).on(PutItemCommand).resolves({});
+
     await expect(
-      joinGame('game1', { name: 'player3', character: 'e' }, 'conn3')
-    ).resolves.toEqual<SuccessfulJoinGameResponse>({
+      joinGame('game1', { name: 'player3', character: 'e' }, 'conn3'),
+    ).resolves.toEqual({
       players: [
         { name: 'player1', character: 'c' },
         { name: 'player2', character: 'd' },

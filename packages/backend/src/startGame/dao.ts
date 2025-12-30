@@ -4,9 +4,9 @@ import {
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { randomInt } from 'crypto';
-import logger from '../logger';
-import { Status } from '../status';
-import { Player } from '../types';
+import logger from '../logger.js';
+import { Status } from '../status.js';
+import { Player } from '../types.js';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation error: TABLE_NAME not set');
