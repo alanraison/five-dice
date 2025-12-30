@@ -1,4 +1,0 @@
-@app
-test-remix
-
-@static
