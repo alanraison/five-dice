@@ -14,6 +14,7 @@ import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import {
   Choice,
   Condition,
+  DefinitionBody,
   type IStateMachine,
   JsonPath,
   LogLevel,
@@ -51,7 +52,9 @@ export class Flow extends Construct {
         TABLE_NAME: table.tableName,
       },
       tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
+      logGroup: new LogGroup(this, 'GetBidDataLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       bundling: {
         format: OutputFormat.ESM,
         target: 'node24',
@@ -67,7 +70,9 @@ export class Flow extends Construct {
       entry: join(import.meta.dirname, '../../src/bid/validateBid/index.ts'),
       runtime: Runtime.NODEJS_24_X,
       tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
+      logGroup: new LogGroup(this, 'ValidateBidLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       bundling: {
         format: OutputFormat.ESM,
         target: 'node24',
@@ -159,7 +164,7 @@ export class Flow extends Construct {
     });
 
     this.stateMachine = new StateMachine(this, 'Bid', {
-      definition,
+      definitionBody: DefinitionBody.fromChainable(definition),
       tracingEnabled: true,
       logs: {
         destination: logGroup,

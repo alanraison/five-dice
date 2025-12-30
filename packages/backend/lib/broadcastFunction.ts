@@ -5,7 +5,7 @@ import { type ITable } from 'aws-cdk-lib/aws-dynamodb';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface BroadcastProps {
@@ -28,8 +28,10 @@ export default class Broadcast extends NodejsFunction {
         TABLE_NAME: table.tableName,
         WSAPI_URL: wsApiStage.callbackUrl,
       },
+      logGroup: new LogGroup(scope, 'BroadcastLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
       bundling: {
         format: OutputFormat.ESM,
         target: 'node24',

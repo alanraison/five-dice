@@ -10,10 +10,11 @@ import {
 } from 'aws-cdk-lib/aws-iam';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import {
   Choice,
   Condition,
+  DefinitionBody,
   type IChainable,
   type INextable,
   type IStateMachine,
@@ -79,7 +80,7 @@ export class Flow extends Construct {
 
   private createStateMachine(definition: IChainable): StateMachine {
     const stateMachine = new StateMachine(this, 'ChallengeFlow', {
-      definition,
+      definitionBody: DefinitionBody.fromChainable(definition),
     });
     stateMachine.grantStartExecution(
       new ServicePrincipal('apigateway.amazonaws.com'),
@@ -92,7 +93,9 @@ export class Flow extends Construct {
       entry: join(import.meta.dirname, '../../src/challenge/getData/index.ts'),
       runtime: Runtime.NODEJS_24_X,
       tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
+      logGroup: new LogGroup(this, 'GetDataLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       environment: {
         TABLE_NAME: table.tableName,
       },
@@ -149,7 +152,9 @@ export class Flow extends Construct {
     const validateFunction = new NodejsFunction(this, 'Validate', {
       entry: join(import.meta.dirname, '../../src/challenge/validate/index.ts'),
       runtime: Runtime.NODEJS_24_X,
-      logRetention: RetentionDays.ONE_DAY,
+      logGroup: new LogGroup(this, 'ValidateLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       tracing: Tracing.ACTIVE,
       bundling: {
         format: OutputFormat.ESM,

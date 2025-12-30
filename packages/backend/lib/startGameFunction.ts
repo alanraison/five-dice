@@ -4,7 +4,7 @@ import { type IEventBus } from 'aws-cdk-lib/aws-events';
 import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { Runtime, Tracing } from 'aws-cdk-lib/aws-lambda';
 import { NodejsFunction, OutputFormat } from 'aws-cdk-lib/aws-lambda-nodejs';
-import { RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
 
 export interface StartGameProps {
@@ -20,14 +20,15 @@ export class StartGame extends NodejsFunction {
   ) {
     super(scope, id, {
       entry: join(import.meta.dirname, '../src/startGame/index.ts'),
-      handler: 'handler',
       runtime: Runtime.NODEJS_24_X,
       environment: {
         TABLE_NAME: table.tableName,
         EVENTBUS_NAME: eventBus.eventBusName,
       },
       tracing: Tracing.ACTIVE,
-      logRetention: RetentionDays.ONE_DAY,
+      logGroup: new LogGroup(scope, 'StartGameLogGroup', {
+        retention: RetentionDays.ONE_DAY,
+      }),
       bundling: {
         format: OutputFormat.ESM,
         target: 'node24',
