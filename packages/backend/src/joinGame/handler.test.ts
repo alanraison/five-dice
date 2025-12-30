@@ -4,7 +4,6 @@ import { handler } from './handler.js';
 
 vi.mock('./dao.js');
 vi.mock('./event.js');
-vi.mock('../logger.js');
 
 describe('joinGameHandler', () => {
   it("should return an error if the request doesn't contain a gameId parameter", async () => {

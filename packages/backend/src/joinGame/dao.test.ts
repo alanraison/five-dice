@@ -7,8 +7,6 @@ import {
 import joinGame, { type UnsuccessfulJoinGameResponse } from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
 
-vi.mock('../logger.js');
-
 class MockConditionalCheckFailedException extends Error {
   name: string = 'ConditionalCheckFailedException';
 

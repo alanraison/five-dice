@@ -32,6 +32,7 @@
     "aws-cdk": "^2.1100.1",
     "aws-cdk-lib": "^2.233.0",
     "aws-sdk-client-mock": "^4.1.0",
+    "aws-sdk-client-mock-vitest": "^7.0.1",
     "concurrently": "^9.2.1",
     "constructs": "^10.4.4",
     "jest-websocket-mock": "^2.3.0",
