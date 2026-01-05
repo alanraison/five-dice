@@ -68,7 +68,7 @@ export async function handler({ gameId, connectionId }: InputEvent) {
   return {
     isCurrentBidder: player === nextPlayer,
     currentBid,
-    bidder: player,
+    bidder: player, // TODO this seems wrong
     nextPlayer: newNextPlayer,
   };
 }

@@ -1,19 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  ConditionalCheckFailedException,
   DynamoDBClient,
   PutItemCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import joinGame, { type UnsuccessfulJoinGameResponse } from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
-
-class MockConditionalCheckFailedException extends Error {
-  name: string = 'ConditionalCheckFailedException';
-
-  constructor() {
-    super('ConditionalCheckFailedException');
-  }
-}
 
 describe('JoinGameDAO', () => {
   const mockDynamoDBClient = mockClient(DynamoDBClient);
@@ -24,13 +17,25 @@ describe('JoinGameDAO', () => {
   });
 
   it('should return an unsuccessful response if the game does not exist or is not joinable', async () => {
+    const query = {
+      Key: {
+        PK: { S: 'GAME#game1' },
+      }
+    };
     mockDynamoDBClient
-      .on(UpdateItemCommand)
-      .rejects(new MockConditionalCheckFailedException());
+      .on(UpdateItemCommand, query)
+      .rejects(new ConditionalCheckFailedException({
+        $metadata: {},
+        message: 'The conditional request failed',
+      }));
     const response = await joinGame(
       'game1',
       { name: 'player1', character: 'character' },
       'conn1',
+    );
+    expect(mockDynamoDBClient).toHaveReceivedCommandWith(
+      UpdateItemCommand,
+      query,
     );
     expect(response).toMatchObject<UnsuccessfulJoinGameResponse>({
       reason: 'Game not joinable',

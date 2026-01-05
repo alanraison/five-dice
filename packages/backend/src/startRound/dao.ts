@@ -4,9 +4,9 @@ import {
   QueryCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import logger from '../logger';
-import { Status } from '../status';
-import { DiceData } from './types';
+import logger from '../logger.js';
+import { Status } from '../status.js';
+import { DiceData } from './types.js';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation Error: TABLE_NAME not set');
@@ -38,9 +38,9 @@ export async function getConnectionsForGame(gameId: string) {
   );
   logger.info(result);
   return result.Items?.map(({ CID, DiceCount, Player }) => {
-    if (!(CID.S && Player.S)) {
+    if (!(CID?.S && Player?.S)) {
       throw Error(
-        `Invalid Player data: connection id ${CID.S}, Player Name ${Player.S}`
+        `Invalid Player data: connection id ${CID?.S}, Player Name ${Player?.S}`
       );
     }
     return {
@@ -72,8 +72,7 @@ export async function saveDice(
     }),
     {}
   );
-  const updates = await Promise.allSettled([
-    ddb.send(
+  const updates = await ddb.send(
       new UpdateItemCommand({
         TableName: table,
         Key: {
@@ -98,18 +97,9 @@ export async function saveDice(
         },
         ReturnValues: 'ALL_NEW',
       })
-    ),
-  ]);
-  const failed = updates.filter(
-    (promise) => promise.status === 'rejected'
-  ) as Array<PromiseRejectedResult>;
-  if (failed.length > 0) {
-    throw new Error(`Some updates failed: ${failed.map((p) => p.reason)}`);
-  }
-  const nextPlayer =
-    updates[0].status === 'fulfilled'
-      ? updates[0].value.Attributes?.NextPlayer?.S
-      : undefined;
+    );
+
+  const nextPlayer = updates.Attributes?.NextPlayer?.S;
   if (!nextPlayer) {
     throw new Error('NextPlayer not found');
   }

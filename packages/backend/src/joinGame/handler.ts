@@ -1,6 +1,7 @@
 import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
 import queuer from './event.js';
 import logger from '../logger.js';
+import { JoinGameRequest } from './types.js';
 
 interface APIGatewayWebsocketProxyEvent {
   body?: string;
@@ -13,13 +14,14 @@ interface APIGatewayWebsocketProxyEvent {
 }
 
 export async function handler(event: APIGatewayWebsocketProxyEvent) {
-  const { gameId: gameIdEnc, name, character } = event.queryStringParameters;
-  if (!(gameIdEnc && name && character)) {
+  const parseResult = JoinGameRequest.safeParse(event.queryStringParameters);
+  if (!parseResult.success) {
     return Promise.resolve({
       statusCode: 400,
       body: 'Missing gameId, name or character parameter in request',
     });
   }
+  const { gameId: gameIdEnc, name, character } = parseResult.data;
   const gameId = gameIdEnc.replace(/-/g, '+').replace(/_/g, '/');
   logger.info(
     {

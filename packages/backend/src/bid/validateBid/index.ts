@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import logger from '../../logger';
+import logger from '../../logger.js';
 
 const validateEvent = z.object({
   newBid: z.object({

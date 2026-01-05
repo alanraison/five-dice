@@ -1,14 +1,10 @@
 import {
-  AttributeValue,
-  BatchGetItemCommand,
   DynamoDBClient,
-  GetItemCommand,
   QueryCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import { NumberAttribute } from 'aws-cdk-lib/aws-cognito';
-import logger from '../logger';
-import { Bid, BidderType } from './types';
+import logger from '../logger.js';
+import { Bid, BidderType } from './types.js';
 
 if (!process.env.TABLE_NAME) {
   throw new Error('Initialisation error: TABLE_NAME not set');

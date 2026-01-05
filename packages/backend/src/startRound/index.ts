@@ -3,10 +3,10 @@ import {
   PostToConnectionCommand,
 } from '@aws-sdk/client-apigatewaymanagementapi';
 import { EventBridgeEvent } from 'aws-lambda';
-import { randomInt } from 'crypto';
-import logger from '../logger';
-import { getConnectionsForGame, saveDice } from './dao';
-import { ConnectionData, DiceData } from './types';
+import { randomInt } from 'node:crypto';
+import logger from '../logger.js';
+import { getConnectionsForGame, saveDice } from './dao.js';
+import { ConnectionData, DiceData } from './types.js';
 
 if (!process.env.WSAPI_URL) {
   throw new Error('Initialisation error: WSAPI_URL not set');

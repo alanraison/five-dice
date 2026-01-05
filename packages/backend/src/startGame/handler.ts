@@ -2,8 +2,9 @@ import {
   EventBridgeClient,
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
-import logger from '../logger';
-import { checkGameDetails, updateGame } from './dao';
+import logger from '../logger.js';
+import { checkGameDetails, startGameRound } from './dao.js';
+import { StartGameEventBody } from './types.js';
 
 if (!process.env.EVENTBUS_NAME) {
   throw new Error('Initialisation error: EVENTBUS_NAME not set');
@@ -21,12 +22,12 @@ interface WebsocketActionEvent {
 
 export async function handler(event: WebsocketActionEvent) {
   logger.debug(event);
-  const gameId = JSON.parse(event.body).gameId;
+  const gameId = StartGameEventBody.parse(JSON.parse(event.body)).gameId;
   const { player, allPlayers } = await checkGameDetails(
     event.requestContext.connectionId,
     gameId
   );
-  await updateGame(gameId, allPlayers);
+  await startGameRound(gameId, allPlayers);
 
   const response = await eventBusClient.send(
     new PutEventsCommand({

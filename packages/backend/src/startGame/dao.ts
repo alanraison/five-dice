@@ -22,7 +22,7 @@ type CheckGameDetailsResponse = {
 
 export async function checkGameDetails(
   connectionId: string,
-  gameId: string
+  gameId: string,
 ): Promise<CheckGameDetailsResponse> {
   const result = await ddb.send(
     new QueryCommand({
@@ -35,15 +35,16 @@ export async function checkGameDetails(
       ExpressionAttributeValues: {
         ':gameId': { S: gameId },
       },
-    })
+    }),
   );
   logger.debug(result);
 
   const player = result.Items?.find(
-    (item) => item.GSI2SK?.S === `CONN#${connectionId}`
+    (item) => item.GSI2SK?.S === `CONN#${connectionId}`,
   )?.Player?.S;
   const allPlayers = Object.entries(
-    result.Items?.find((item) => item.GSI2SK?.S === 'GAME')?.Characters?.M || {}
+    result.Items?.find((item) => item.GSI2SK?.S === 'GAME')?.Characters?.M ||
+      {},
   ).map(([name, character]) => ({
     name: name,
     character: character.S || '',
@@ -57,7 +58,10 @@ export async function checkGameDetails(
   };
 }
 
-export async function updateGame(gameId: string, allPlayers: Array<Player>) {
+export async function startGameRound(
+  gameId: string,
+  allPlayers: Array<Player>,
+) {
   const randomPlayer = randomInt(allPlayers.length);
   const updateResponse = await ddb.send(
     new UpdateItemCommand({
@@ -82,7 +86,7 @@ export async function updateGame(gameId: string, allPlayers: Array<Player>) {
         ':nextPlayer': { S: allPlayers[randomPlayer].name },
         ':players': { L: allPlayers.map((p) => ({ S: p.name })) },
       },
-    })
+    }),
   );
   logger.debug(updateResponse, 'update response');
 }

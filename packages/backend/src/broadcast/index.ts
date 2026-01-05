@@ -2,16 +2,13 @@ import {
   ApiGatewayManagementApiClient,
   PostToConnectionCommand,
 } from '@aws-sdk/client-apigatewaymanagementapi';
-import { EventBridgeEvent } from 'aws-lambda';
+import { type EventBridgeEvent } from 'aws-lambda';
 import logger from '../logger.js';
 import { getConnectionsForGame } from './dao.js';
+import { type GameEvent } from './types.js';
 
 if (!process.env.WSAPI_URL) {
   throw new Error('Initialisation Error: WSAPI_URL not defined');
-}
-
-interface GameEvent {
-  gameId: string;
 }
 
 const apiGwClient = new ApiGatewayManagementApiClient({
@@ -32,11 +29,11 @@ export async function handler(event: EventBridgeEvent<string, GameEvent>) {
                 event: event['detail-type'],
                 ...event.detail,
                 gameId: undefined,
-              })
+              }),
             ),
-          })
-        )
-      )
+          }),
+        ),
+      ),
     );
     logger.debug(results);
   } catch (e) {
