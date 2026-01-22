@@ -1,9 +1,11 @@
-import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
-import queuer from './event.js';
+import { type DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { type EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import logger from '../logger.js';
+import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
+import queuerFactory from './event.js';
 import { JoinGameRequest } from './types.js';
 
-interface APIGatewayWebsocketProxyEvent {
+export interface APIGatewayWebsocketProxyEvent {
   body?: string;
   requestContext: {
     connectionId: string;
@@ -13,54 +15,72 @@ interface APIGatewayWebsocketProxyEvent {
   };
 }
 
-export async function handler(event: APIGatewayWebsocketProxyEvent) {
-  const parseResult = JoinGameRequest.safeParse(event.queryStringParameters);
-  if (!parseResult.success) {
-    return Promise.resolve({
-      statusCode: 400,
-      body: 'Missing gameId, name or character parameter in request',
-    });
-  }
-  const { gameId: gameIdEnc, name, character } = parseResult.data;
-  const gameId = gameIdEnc.replace(/-/g, '+').replace(/_/g, '/');
-  logger.info(
-    {
-      name,
-      connectionId: event.requestContext.connectionId,
-    },
-    'join game',
-  );
-  try {
-    const player = { name, character };
-    const joinGameResponse = await joinGame(
-      gameId,
-      player,
-      event.requestContext.connectionId,
+export function handlerFactory({
+  ddb,
+  tableName,
+  eventBusName,
+  eventBridgeClient: EventBridgeClient,
+}: {
+  ddb: DynamoDBClient;
+  tableName: string;
+  eventBusName: string;
+  eventBridgeClient: EventBridgeClient;
+}) {
+  const queuer = queuerFactory(EventBridgeClient, eventBusName);
+
+  return async function handler(event: APIGatewayWebsocketProxyEvent) {
+    const parseResult = JoinGameRequest.safeParse(
+      event.queryStringParameters || {},
     );
-    if (joinGameResponse instanceof UnsuccessfulJoinGameResponse) {
-      return {
+    if (!parseResult.success) {
+      return Promise.resolve({
         statusCode: 400,
-        body: joinGameResponse.reason,
-      };
+        body: 'Missing gameId, name or character parameter in request',
+      });
     }
-    const { players } = joinGameResponse;
-    await queuer({
-      gameId,
-      newPlayer: player,
-      allPlayers: players,
-    });
-    logger.debug({ players });
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        players,
-      }),
-    };
-  } catch (err) {
-    logger.error({ err });
-    return Promise.resolve({
-      statusCode: 500,
-      body: err instanceof Error ? err.message : 'unknown error',
-    });
-  }
+    const { gameId: gameIdEnc, name, character } = parseResult.data;
+    const gameId = gameIdEnc.replace(/-/g, '+').replace(/_/g, '/');
+    logger.info(
+      {
+        name,
+        connectionId: event.requestContext.connectionId,
+      },
+      'join game',
+    );
+    try {
+      const player = { name, character };
+      const joinGameResponse = await joinGame(
+        ddb,
+        tableName,
+        gameId,
+        player,
+        event.requestContext.connectionId,
+      );
+      if (joinGameResponse instanceof UnsuccessfulJoinGameResponse) {
+        return {
+          statusCode: 400,
+          body: joinGameResponse.reason,
+        };
+      }
+      const { players } = joinGameResponse;
+      await queuer({
+        gameId,
+        newPlayer: player,
+        allPlayers: players,
+      });
+      logger.debug({ players });
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          players,
+        }),
+      };
+    } catch (err) {
+      logger.error({ err });
+      return Promise.resolve({
+        statusCode: 500,
+        body: err instanceof Error ? err.message : 'unknown error',
+      });
+    }
+  };
 }

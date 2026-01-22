@@ -42,7 +42,6 @@ export async function createGame(): Promise<string> {
       },
     });
     try {
-      // eslint-disable-next-line no-await-in-loop
       await ddb.send(req);
       return name;
     } catch (err) {

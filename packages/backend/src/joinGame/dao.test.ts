@@ -8,8 +8,11 @@ import {
 import joinGame, { type UnsuccessfulJoinGameResponse } from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
 
+const client = new DynamoDBClient();
+const tableName = 'TestTable';
+
 describe('JoinGameDAO', () => {
-  const mockDynamoDBClient = mockClient(DynamoDBClient);
+  const mockDynamoDBClient = mockClient(client);
 
   beforeEach(() => {
     mockDynamoDBClient.reset();
@@ -20,15 +23,17 @@ describe('JoinGameDAO', () => {
     const query = {
       Key: {
         PK: { S: 'GAME#game1' },
-      }
+      },
     };
-    mockDynamoDBClient
-      .on(UpdateItemCommand, query)
-      .rejects(new ConditionalCheckFailedException({
+    mockDynamoDBClient.on(UpdateItemCommand, query).rejects(
+      new ConditionalCheckFailedException({
         $metadata: {},
         message: 'The conditional request failed',
-      }));
+      }),
+    );
     const response = await joinGame(
+      client,
+      tableName,
       'game1',
       { name: 'player1', character: 'character' },
       'conn1',
@@ -46,6 +51,8 @@ describe('JoinGameDAO', () => {
     mockDynamoDBClient.on(UpdateItemCommand).rejects(new Error('Some Error'));
     await expect(() =>
       joinGame(
+        client,
+        tableName,
         'game2',
         {
           name: 'player2',
@@ -57,20 +64,30 @@ describe('JoinGameDAO', () => {
   });
 
   it('should return the current player list if the player joins successfully', async () => {
-    mockDynamoDBClient.on(UpdateItemCommand).resolves({
-      Attributes: {
-        Characters: {
-          M: {
-            player1: { S: 'c' },
-            player2: { S: 'd' },
-            player3: { S: 'e' },
+    mockDynamoDBClient
+      .on(UpdateItemCommand)
+      .resolves({
+        Attributes: {
+          Characters: {
+            M: {
+              player1: { S: 'c' },
+              player2: { S: 'd' },
+              player3: { S: 'e' },
+            },
           },
         },
-      },
-    }).on(PutItemCommand).resolves({});
+      })
+      .on(PutItemCommand)
+      .resolves({});
 
     await expect(
-      joinGame('game1', { name: 'player3', character: 'e' }, 'conn3'),
+      joinGame(
+        client,
+        tableName,
+        'game1',
+        { name: 'player3', character: 'e' },
+        'conn3',
+      ),
     ).resolves.toEqual({
       players: [
         { name: 'player1', character: 'c' },

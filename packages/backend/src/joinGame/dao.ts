@@ -35,10 +35,9 @@ export class UnsuccessfulJoinGameResponse {
   readonly reason = 'Game not joinable';
 }
 
-const table = process.env.TABLE_NAME;
-const ddb = new DynamoDBClient({ endpoint: process.env.DYNAMO_ENDPOINT });
-
 export default async function joinGameDAO(
+  ddb: DynamoDBClient,
+  table: string,
   gameId: string,
   player: Player,
   connectionId: string,

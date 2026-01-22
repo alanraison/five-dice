@@ -4,10 +4,15 @@ import {
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
 import { mockClient } from 'aws-sdk-client-mock';
-import queue from './event.js';
+import queuerFactory from './event.js';
 
 describe('Queuer', () => {
-  const mockEventBridgeClient = mockClient(EventBridgeClient);
+  const eventBridgeClient = new EventBridgeClient();
+  const mockEventBridgeClient = mockClient(eventBridgeClient);
+  const queue = queuerFactory(
+    eventBridgeClient,
+    'test-event-bus',
+  );
   beforeEach(() => {
     mockEventBridgeClient.reset();
   });
