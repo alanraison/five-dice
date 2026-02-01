@@ -1,8 +1,6 @@
-import { type DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { type EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import logger from '../logger.js';
-import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
-import queuerFactory from './event.js';
+import { type JoinGameDAO, UnsuccessfulJoinGameResponse } from './dao.js';
+import { Queuer } from './event.js';
 import { JoinGameRequest } from './types.js';
 
 export interface APIGatewayWebsocketProxyEvent {
@@ -15,19 +13,7 @@ export interface APIGatewayWebsocketProxyEvent {
   };
 }
 
-export function handlerFactory({
-  ddb,
-  tableName,
-  eventBusName,
-  eventBridgeClient: EventBridgeClient,
-}: {
-  ddb: DynamoDBClient;
-  tableName: string;
-  eventBusName: string;
-  eventBridgeClient: EventBridgeClient;
-}) {
-  const queuer = queuerFactory(EventBridgeClient, eventBusName);
-
+export function handlerFactory(joinGame: JoinGameDAO, queuer: Queuer) {
   return async function handler(event: APIGatewayWebsocketProxyEvent) {
     const parseResult = JoinGameRequest.safeParse(
       event.queryStringParameters || {},
@@ -50,8 +36,6 @@ export function handlerFactory({
     try {
       const player = { name, character };
       const joinGameResponse = await joinGame(
-        ddb,
-        tableName,
         gameId,
         player,
         event.requestContext.connectionId,

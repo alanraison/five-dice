@@ -5,11 +5,15 @@ import {
   PutItemCommand,
   UpdateItemCommand,
 } from '@aws-sdk/client-dynamodb';
-import joinGame, { type UnsuccessfulJoinGameResponse } from './dao.js';
+import {
+  joinGameDAOFactory,
+  type UnsuccessfulJoinGameResponse,
+} from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
 
 const client = new DynamoDBClient();
 const tableName = 'TestTable';
+const joinGame = joinGameDAOFactory(client, tableName);
 
 describe('JoinGameDAO', () => {
   const mockDynamoDBClient = mockClient(client);
@@ -32,8 +36,6 @@ describe('JoinGameDAO', () => {
       }),
     );
     const response = await joinGame(
-      client,
-      tableName,
       'game1',
       { name: 'player1', character: 'character' },
       'conn1',
@@ -51,8 +53,6 @@ describe('JoinGameDAO', () => {
     mockDynamoDBClient.on(UpdateItemCommand).rejects(new Error('Some Error'));
     await expect(() =>
       joinGame(
-        client,
-        tableName,
         'game2',
         {
           name: 'player2',
@@ -81,13 +81,7 @@ describe('JoinGameDAO', () => {
       .resolves({});
 
     await expect(
-      joinGame(
-        client,
-        tableName,
-        'game1',
-        { name: 'player3', character: 'e' },
-        'conn3',
-      ),
+      joinGame('game1', { name: 'player3', character: 'e' }, 'conn3'),
     ).resolves.toEqual({
       players: [
         { name: 'player1', character: 'c' },

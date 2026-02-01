@@ -4,20 +4,17 @@ import {
   PutEventsCommand,
 } from '@aws-sdk/client-eventbridge';
 import { mockClient } from 'aws-sdk-client-mock';
-import queuerFactory from './event.js';
+import { queuerFactory } from './event.js';
 
 describe('Queuer', () => {
   const eventBridgeClient = new EventBridgeClient();
   const mockEventBridgeClient = mockClient(eventBridgeClient);
-  const queue = queuerFactory(
-    eventBridgeClient,
-    'test-event-bus',
-  );
+  const queue = queuerFactory(eventBridgeClient, 'test-event-bus');
   beforeEach(() => {
     mockEventBridgeClient.reset();
   });
-  it('should queue an event on the queue', () => {
-    queue({
+  it('should queue an event on the queue', async () => {
+    await queue({
       gameId: 'aaa',
       newPlayer: { name: 'new', character: '' },
       allPlayers: [{ name: 'new', character: '' }],

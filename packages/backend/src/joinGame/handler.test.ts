@@ -1,21 +1,23 @@
-import { describe, expect, it, vi } from 'vitest';
-import joinGame, { UnsuccessfulJoinGameResponse } from './dao.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { UnsuccessfulJoinGameResponse } from './dao.js';
 import { handlerFactory } from './handler.js';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 
 vi.mock('./dao.js');
 vi.mock('./event.js');
 
 describe('joinGameHandler', () => {
-  const ddb = new DynamoDBClient();
-  const eventBridgeClient = new EventBridgeClient();
-  const handler = handlerFactory({
-    ddb,
-    tableName: 'TestTable',
-    eventBusName: 'test-event-bus',
-    eventBridgeClient: eventBridgeClient,
+  const joinGame = vi.fn();
+  const queuer = vi.fn();
+
+  const handler = handlerFactory(
+    joinGame,
+    queuer,
+  );
+
+  afterEach(() => {
+    vi.resetAllMocks();
   });
+
   it("should return an error if the request doesn't contain a gameId parameter", async () => {
     await expect(
       handler({

@@ -11,7 +11,9 @@ export interface PlayerJoinedEvent {
   allPlayers: Array<Player>;
 }
 
-export default function queuerFactory(
+export type Queuer = (message: PlayerJoinedEvent) => Promise<void>;
+
+export function queuerFactory(
   eventBridgeClient: EventBridgeClient,
   eventBusName: string,
 ) {

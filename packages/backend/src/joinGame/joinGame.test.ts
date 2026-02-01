@@ -19,12 +19,14 @@ import {
   LocalstackContainer,
   StartedLocalStackContainer,
 } from '@testcontainers/localstack';
-import { randomUuid } from 'testcontainers';
+import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { localstackContainer } from '../../test/config.js';
 import { createTable } from '../../test/dynamodb.js';
 import { createGame } from '../../test/game.js';
 import { APIGatewayWebsocketProxyEvent, handlerFactory } from './handler.js';
+import { queuerFactory } from './event.js';
+import { joinGameDAOFactory } from './dao.js';
 
 describe('JoinGame API', () => {
   let container: StartedLocalStackContainer;
@@ -33,14 +35,12 @@ describe('JoinGame API', () => {
   let sqsClient: SQSClient;
   let queueUrl: string | undefined;
   const tableName = 'JoinGameTestTable';
-  const eventBusName = 'test-event-bus';
-  const queueName = 'test-queue';
+  const eventBusName = 'join-game-test-bus';
+  const queueName = 'join-game-test-queue';
   let handler: (event: APIGatewayWebsocketProxyEvent) => Promise<any>;
 
   beforeAll(async () => {
-    container = await new LocalstackContainer(localstackContainer)
-      .withReuse()
-      .start();
+    container = await new LocalstackContainer(localstackContainer).start();
     ddb = new DynamoDBClient({
       endpoint: container.getConnectionUri(),
       region: 'us-east-1',
@@ -57,16 +57,14 @@ describe('JoinGame API', () => {
       region: 'us-east-1',
     });
     await createTable(ddb, tableName);
-    handler = handlerFactory({
-      ddb,
-      tableName,
-      eventBusName,
-      eventBridgeClient,
-    });
+    handler = handlerFactory(
+      joinGameDAOFactory(ddb, tableName),
+      queuerFactory(eventBridgeClient, eventBusName),
+    );
     await eventBridgeClient.send(
       new PutRuleCommand({
         EventBusName: eventBusName,
-        Name: 'test-rule',
+        Name: 'join-game-test',
         EventPattern: JSON.stringify({
           source: ['five-dice-wsapi'],
         }),
@@ -81,10 +79,10 @@ describe('JoinGame API', () => {
     await eventBridgeClient.send(
       new PutTargetsCommand({
         EventBusName: eventBusName,
-        Rule: 'test-rule',
+        Rule: 'join-game-test',
         Targets: [
           {
-            Id: 'test-target',
+            Id: 'join-game-target',
             Arn: `arn:aws:sqs:us-east-1:000000000000:${queueName}`,
           },
         ],
@@ -102,17 +100,22 @@ describe('JoinGame API', () => {
     );
   });
   it('should join a game successfully', async () => {
-    const gameId = randomUuid();
+    const gameId = randomUUID().replaceAll('-', '');
     await createGame(ddb, tableName, gameId);
-    await handler({
+    const handlerResponse = await handler({
       requestContext: {
         connectionId: 'conn1',
       },
       queryStringParameters: {
-        gameId: gameId.replace(/\+/g, '-').replace(/\//g, '_'),
+        gameId,
         name: 'Alice',
         character: 'Warrior',
       },
+    });
+    expect(handlerResponse).toBeDefined();
+    expect(handlerResponse.statusCode).toBe(200);
+    expect(JSON.parse(handlerResponse.body)).toEqual({
+      players: [{ name: 'Alice', character: 'Warrior' }],
     });
     const response = await ddb.send(
       new GetItemCommand({
@@ -120,6 +123,7 @@ describe('JoinGame API', () => {
         Key: {
           PK: { S: `GAME#${gameId}` },
         },
+        ConsistentRead: true,
       }),
     );
     expect(response.Item).toBeDefined();
@@ -161,7 +165,7 @@ describe('JoinGame API', () => {
     });
   });
   it('should record each connection for a game in GSI1', async () => {
-    const gameId = randomUuid();
+    const gameId = randomUUID().replaceAll('-', '');
     await createGame(ddb, tableName, gameId);
     const connections = [
       { connectionId: 'conn1', name: 'Alice', character: 'Warrior' },
@@ -173,7 +177,7 @@ describe('JoinGame API', () => {
           connectionId: conn.connectionId,
         },
         queryStringParameters: {
-          gameId: gameId.replace(/\+/g, '-').replace(/\//g, '_'),
+          gameId,
           name: conn.name,
           character: conn.character,
         },
@@ -215,14 +219,14 @@ describe('JoinGame API', () => {
   });
   it.todo('should store game data in GSI2', () => {});
   it('should notify players when a new player joins', async () => {
-    const gameId = randomUuid();
+    const gameId = randomUUID().replaceAll('-', '');
     await createGame(ddb, tableName, gameId);
     await handler({
       requestContext: {
         connectionId: 'conn1',
       },
       queryStringParameters: {
-        gameId: gameId.replace(/\+/g, '-').replace(/\//g, '_'),
+        gameId,
         name: 'Alice',
         character: 'Warrior',
       },
@@ -250,7 +254,7 @@ describe('JoinGame API', () => {
           },
         ],
       },
-      "detail-type": "player-joined"
+      'detail-type': 'player-joined',
     });
   });
 });

@@ -1,10 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { deleteConnection, removePlayerFromGame } from './dao.js';
-import { DeleteItemCommand, DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
+import { LeaveGameDAO, leaveGameDAOFactory } from './dao.js';
+import {
+  DeleteItemCommand,
+  DynamoDBClient,
+  UpdateItemCommand,
+} from '@aws-sdk/client-dynamodb';
 import { mockClient } from 'aws-sdk-client-mock';
 
 describe('LeaveGameDAO', () => {
-  const mockDynamoDBClient = mockClient(DynamoDBClient);
+  const client = new DynamoDBClient();
+  const mockDynamoDBClient = mockClient(client);
+  const tableName = 'LeaveGameTable';
+  const leaveGameDAO: LeaveGameDAO = leaveGameDAOFactory(client, tableName);
 
   beforeEach(() => {
     mockDynamoDBClient.reset();
@@ -25,12 +32,11 @@ describe('LeaveGameDAO', () => {
             Player: { S: 'player1' },
           },
         });
-      await deleteConnection('conn1');
+      await leaveGameDAO.deleteConnection('conn1');
       expect(mockDynamoDBClient).toHaveReceivedCommandWith(DeleteItemCommand, {
         Key: {
           PK: { S: 'CONN#conn1' },
         },
-        TableName: process.env.TABLE_NAME,
       });
     });
     it("should error if the connection isn't associated with a game", async () => {
@@ -39,9 +45,9 @@ describe('LeaveGameDAO', () => {
           PlayerName: { S: 'player1' },
         },
       });
-      await expect(() => deleteConnection('conn2')).rejects.toThrow(
-        'Game ID not found',
-      );
+      await expect(() =>
+        leaveGameDAO.deleteConnection('conn2'),
+      ).rejects.toThrow('Game ID not found');
       expect(mockDynamoDBClient).toHaveReceivedCommandWith(DeleteItemCommand, {
         Key: {
           PK: { S: 'CONN#conn2' },
@@ -54,9 +60,9 @@ describe('LeaveGameDAO', () => {
           GID: { S: 'game2' },
         },
       });
-      await expect(() => deleteConnection('conn3')).rejects.toThrow(
-        'Player not found',
-      );
+      await expect(() =>
+        leaveGameDAO.deleteConnection('conn3'),
+      ).rejects.toThrow('Player not found');
       expect(mockDynamoDBClient).toHaveReceivedCommandWith(DeleteItemCommand, {
         Key: {
           PK: { S: 'CONN#conn3' },
@@ -64,7 +70,7 @@ describe('LeaveGameDAO', () => {
       });
     });
   });
-  describe("removePlayerFromGame", () => {
+  describe('removePlayerFromGame', () => {
     it('should remove the player from the game and return the updated player list', async () => {
       mockDynamoDBClient
         .on(UpdateItemCommand, {
@@ -82,7 +88,10 @@ describe('LeaveGameDAO', () => {
             },
           },
         });
-      const players = await removePlayerFromGame('game1', 'player1');
+      const players = await leaveGameDAO.removePlayerFromGame(
+        'game1',
+        'player1',
+      );
       expect(players).toEqual(['player2', 'player3']);
       expect(mockDynamoDBClient).toHaveReceivedCommandWith(UpdateItemCommand, {
         Key: {

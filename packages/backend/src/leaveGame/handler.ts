@@ -1,52 +1,35 @@
-import {
-  EventBridgeClient,
-  PutEventsCommand,
-} from '@aws-sdk/client-eventbridge';
 import logger from '../logger.js';
-import { deleteConnection, removePlayerFromGame } from './dao.js';
+import { LeaveGameDAO } from './dao.js';
+import { Queuer } from './event.js';
 
-if (!process.env.EVENTBUS_NAME) {
-  throw new Error('Initialisation Error: no EVENTBUS_NAME set');
-}
-const eventBridgeClient = new EventBridgeClient({});
-const eventBus = process.env.EVENTBUS_NAME;
-
-interface APIGatewayWebsocketProxyEvent {
+export interface APIGatewayWebsocketProxyEvent {
   requestContext: {
     connectionId: string;
   };
 }
 
-export async function handler(event: APIGatewayWebsocketProxyEvent) {
-  logger.info({
-    msg: 'Handling disconnect',
-    connectionId: event.requestContext.connectionId,
-  });
+export type LeaveGameHandler = (
+  event: APIGatewayWebsocketProxyEvent,
+) => Promise<{
+  statusCode: number;
+}>;
 
-  const { gameId, player } = await deleteConnection(
-    event.requestContext.connectionId,
-  );
+export function handlerFactory(leaveGameDAO: LeaveGameDAO, queuer: Queuer): LeaveGameHandler {
+  return async (event: APIGatewayWebsocketProxyEvent) => {
+    logger.info({
+      msg: 'Handling disconnect',
+      connectionId: event.requestContext.connectionId,
+    });
 
-  const players = await removePlayerFromGame(gameId, player);
+    const { gameId, player } = await leaveGameDAO.deleteConnection(
+      event.requestContext.connectionId,
+    );
 
-  await eventBridgeClient.send(
-    new PutEventsCommand({
-      Entries: [
-        {
-          DetailType: 'player-left',
-          Detail: JSON.stringify({
-            player,
-            allPlayers: players,
-            gameId,
-          }),
-          Resources: [gameId],
-          Source: 'five-dice-wsapi',
-          EventBusName: eventBus,
-        },
-      ],
-    }),
-  );
-  return {
-    statusCode: 200,
+    const players = await leaveGameDAO.removePlayerFromGame(gameId, player);
+
+    await queuer(player, players, gameId);
+    return {
+      statusCode: 200,
+    };
   };
 }

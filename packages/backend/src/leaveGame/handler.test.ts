@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { handler } from './handler.js';
-import { deleteConnection, removePlayerFromGame } from './dao.js';
+import { handlerFactory } from './handler.js';
+import { leaveGameDAOFactory } from './dao.js';
+import { queuerFactory } from './event.js';
 import { mockClient } from 'aws-sdk-client-mock';
 import {
   EventBridgeClient,
@@ -8,12 +9,22 @@ import {
 } from '@aws-sdk/client-eventbridge';
 
 vi.mock('./dao.js');
+vi.mock('./event.js');
 
 describe('leaveGame handler', () => {
-  const mockEventBridgeClient = mockClient(EventBridgeClient);
+  const deleteConnection = vi.fn();
+  const removePlayerFromGame = vi.fn();
+  const notify = vi.fn();
+  const handler = handlerFactory(
+    {
+      deleteConnection,
+      removePlayerFromGame,
+    },
+    notify,
+  );
+
   beforeEach(() => {
     vi.resetAllMocks();
-    mockEventBridgeClient.reset();
   });
   it("should delete the player's connection", async () => {
     vi.mocked(deleteConnection).mockResolvedValue({
@@ -38,29 +49,15 @@ describe('leaveGame handler', () => {
       'player2',
     );
   });
-  it('should create a player-left event', async () => {
+  it('should notify other players that the player has left', async () => {
     vi.mocked(deleteConnection).mockResolvedValue({
       gameId: 'game3',
       player: 'player3',
     });
     vi.mocked(removePlayerFromGame).mockResolvedValue(['player4']);
-    const event = {
+    await handler({
       requestContext: { connectionId: 'conn3' },
-    };
-    await handler(event);
-    expect(mockEventBridgeClient).toHaveReceivedCommandWith(PutEventsCommand, {
-      Entries: [
-        expect.objectContaining({
-          DetailType: 'player-left',
-        }),
-      ],
     });
-    const calls = mockEventBridgeClient.commandCalls(PutEventsCommand);
-    const detail = JSON.parse(calls[0].args[0].input.Entries?.[0].Detail ?? '');
-    expect(detail).toEqual({
-      player: 'player3',
-      allPlayers: ['player4'],
-      gameId: 'game3',
-    });
+    expect(vi.mocked(notify)).toHaveBeenCalledWith('player3', ['player4'], 'game3');
   });
 });
