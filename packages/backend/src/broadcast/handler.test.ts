@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, vi, expect } from 'vitest';
-import { handler } from './index.js';
-import { getConnectionsForGame } from './dao.js';
+import { handlerFactory } from './handler.js';
+import { broadcastDAOFactory } from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
 import {
   ApiGatewayManagementApiClient,
@@ -9,10 +9,11 @@ import {
 import { type EventBridgeEvent } from 'aws-lambda';
 import { type GameEvent } from './types.js';
 
-vi.mock('./dao.js');
-
 describe('broadcast handler', () => {
-  const mockApiGatewayClient = mockClient(ApiGatewayManagementApiClient);
+  const apiGwClient = new ApiGatewayManagementApiClient();
+  const mockApiGatewayClient = mockClient(apiGwClient);
+  const getConnectionsForGame = vi.fn();
+  const handler = handlerFactory(apiGwClient, { getConnectionsForGame });
   beforeEach(() => {
     vi.resetAllMocks();
     mockApiGatewayClient.reset();
@@ -39,23 +40,29 @@ describe('broadcast handler', () => {
       PostToConnectionCommand,
       2,
     );
-    expect(mockApiGatewayClient).toHaveReceivedCommandWith(PostToConnectionCommand, {
-      ConnectionId: 'conn1',
-      Data: Buffer.from(
-        JSON.stringify({
-          event: 'GAME_EVENT',
-          someData: 'value',
-        }),
+    expect(mockApiGatewayClient).toHaveReceivedCommandWith(
+      PostToConnectionCommand,
+      {
+        ConnectionId: 'conn1',
+        Data: Buffer.from(
+          JSON.stringify({
+            event: 'GAME_EVENT',
+            someData: 'value',
+          }),
         ),
-    });
-    expect(mockApiGatewayClient).toHaveReceivedCommandWith(PostToConnectionCommand, {
-      ConnectionId: 'conn2',
-      Data: Buffer.from(
-        JSON.stringify({
-          event: 'GAME_EVENT',
-          someData: 'value',
-        }),
-      ),
-    });
+      },
+    );
+    expect(mockApiGatewayClient).toHaveReceivedCommandWith(
+      PostToConnectionCommand,
+      {
+        ConnectionId: 'conn2',
+        Data: Buffer.from(
+          JSON.stringify({
+            event: 'GAME_EVENT',
+            someData: 'value',
+          }),
+        ),
+      },
+    );
   });
 });

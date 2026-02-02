@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { getConnectionsForGame } from './dao.js';
+import { broadcastDAOFactory } from './dao.js';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBClient, QueryCommand } from '@aws-sdk/client-dynamodb';
 
 describe('BroadcastDAO', () => {
-  const mockDynamoDBClient = mockClient(DynamoDBClient);
+  const dynamodbClient = new DynamoDBClient();
+  const mockDynamoDBClient = mockClient(dynamodbClient);
+  const { getConnectionsForGame } = broadcastDAOFactory(dynamodbClient, 'TestTable');
   beforeEach(() => {
     mockDynamoDBClient.reset();
   });
