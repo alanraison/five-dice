@@ -1,12 +1,12 @@
 import { DynamoDBClient, PutItemCommand } from '@aws-sdk/client-dynamodb';
 import { Status } from '../src/status.js';
+import { randomUUID } from 'node:crypto';
 
 export async function createGame(
   client: DynamoDBClient,
   tableName: string,
-  gameIdEnc: string,
 ) {
-  const gameId = gameIdEnc.replace(/-/g, '+').replace(/_/g, '/');
+  const gameId = randomUUID().replace(/-/g, '').slice(0, 8);
   await client.send(
     new PutItemCommand({
       TableName: tableName,
@@ -25,4 +25,5 @@ export async function createGame(
       },
     }),
   );
+  return gameId;
 }

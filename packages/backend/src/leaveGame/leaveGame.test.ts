@@ -98,8 +98,7 @@ describe('leaveGame handler', () => {
     );
   });
   it('should remove the player from the game', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     await joinGameDAO(
       gameId,
       { name: 'Alice', character: 'Wizard' },
@@ -128,8 +127,7 @@ describe('leaveGame handler', () => {
     expect(gameItem.Item?.Characters.M).toHaveProperty('Bob');
   });
   it('should delete the connection from the connections table', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     await joinGameDAO(
       gameId,
       { name: 'Alice', character: 'Wizard' },
@@ -152,8 +150,7 @@ describe('leaveGame handler', () => {
     expect(connectionItem.Item).toBeUndefined();
   });
   it('should emit a player-left event to EventBridge', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     await joinGameDAO(
       gameId,
       { name: 'Alice', character: 'Wizard' },

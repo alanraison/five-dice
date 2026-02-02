@@ -100,8 +100,7 @@ describe('JoinGame API', () => {
     );
   });
   it('should join a game successfully', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     const handlerResponse = await handler({
       requestContext: {
         connectionId: 'conn1',
@@ -165,8 +164,7 @@ describe('JoinGame API', () => {
     });
   });
   it('should record each connection for a game in GSI1', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     const connections = [
       { connectionId: 'conn1', name: 'Alice', character: 'Warrior' },
       { connectionId: 'conn2', name: 'Bob', character: 'Mage' },
@@ -219,8 +217,7 @@ describe('JoinGame API', () => {
   });
   it.todo('should store game data in GSI2', () => {});
   it('should notify players when a new player joins', async () => {
-    const gameId = randomUUID().replaceAll('-', '');
-    await createGame(ddb, tableName, gameId);
+    const gameId = await createGame(ddb, tableName);
     await handler({
       requestContext: {
         connectionId: 'conn1',
